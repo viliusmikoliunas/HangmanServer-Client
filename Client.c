@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define BUFFLEN 1024
 
@@ -57,9 +58,13 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-    /* 
-     * Prisijungiama prie serverio
-     */
+	char* username = "Testuser00";
+	/*
+	char* username;
+	printf("Enter username:");
+	scanf("%s",username);
+	*/
+	
     if (connect(s_socket,(struct sockaddr*)&servaddr,sizeof(servaddr))<0){
         fprintf(stderr,"ERROR #4: error in connect().\n");
         exit(1);
@@ -67,19 +72,29 @@ int main(int argc, char *argv[]){
     memset(&sendbuffer,0,BUFFLEN);
     fcntl(0,F_SETFL,fcntl(0,F_GETFL,0)|O_NONBLOCK);
 	
+	//static bool wasUsernameSent = false;
+	
     while (1){
         FD_ZERO(&read_set);
         FD_SET(s_socket,&read_set);
         FD_SET(0,&read_set);
 
         select(s_socket+1,&read_set,NULL,NULL,NULL);
-
-        if (FD_ISSET(s_socket, &read_set)){
+/*
+		if(!wasUsernameSent)
+		{
+			write(s_socket,username,strlen(username));
+			wasUsernameSent = true;
+		}*/
+		
+        if (FD_ISSET(s_socket, &read_set))
+		{
             memset(&recvbuffer,0,BUFFLEN);
             i = read(s_socket, &recvbuffer, BUFFLEN);
             printf("%s\n",recvbuffer);
         }
-        else if (FD_ISSET(0,&read_set)) {
+        else if (FD_ISSET(0,&read_set))
+		{
             i = read(0,&sendbuffer,BUFFLEN);
             write(s_socket, sendbuffer,i);
         }

@@ -10,6 +10,10 @@
 #define BUFFLEN 1024
 #define MAXCLIENTS 10
 
+static const int lives = 5;
+#define maxWordLength 20
+#define maxUsernameLength 50
+
 char* GenerateUserString(char* word)
 {
 	char* userString = malloc(strlen(word));
@@ -56,6 +60,26 @@ int findemptyuser(int c_sockets[]){
         }
     }
     return -1;
+}
+
+struct hangmanGame{
+	int lives[MAXCLIENTS];
+	char words[MAXCLIENTS][maxWordLength];
+	char userString[MAXCLIENTS][maxWordLength];
+	char username[MAXCLIENTS][maxUsernameLength];
+}hangman;
+
+void SetupNewUser(int c_sockets[], int id)
+{
+	//recv(c_sockets[id],&hangman.username[id],maxUsernameLength,0);//get username
+	memcpy(hangman.username[id],"TServ00",strlen("TServ00"));
+	hangman.lives[id] = lives;
+	
+	char* tempWord = GetRandomWord();
+	memcpy(hangman.words[id],tempWord,strlen(tempWord));
+	
+	char* tempUserString = GenerateUserString(tempWord);
+	memcpy(hangman.userString[id],tempUserString,strlen(tempUserString));
 }
 
 int main(int argc, char *argv[]){
@@ -124,9 +148,7 @@ int main(int argc, char *argv[]){
         }
 
         FD_SET(l_socket, &read_set);
-        if (l_socket > maxfd){
-            maxfd = l_socket;
-        }
+		maxfd = (l_socket > maxfd) ? l_socket : maxfd;
         
         select(maxfd+1, &read_set, NULL , NULL, NULL);
 
@@ -137,7 +159,11 @@ int main(int argc, char *argv[]){
                 memset(&clientaddr, 0, clientaddrlen);
                 c_sockets[client_id] = accept(l_socket, 
                     (struct sockaddr*)&clientaddr, &clientaddrlen);
-                printf("Connected:  %s\n",inet_ntoa(clientaddr.sin_addr));
+					
+				SetupNewUser(c_sockets,client_id);
+                printf("Connected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr)
+					,hangman.username[client_id]);
+				
             }
         }
         for (i = 0; i < MAXCLIENTS; i++){
@@ -151,6 +177,7 @@ int main(int argc, char *argv[]){
 					{
 						close(c_sockets[i]);
 						c_sockets[i] = -1;
+						//printf("Disconnected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr));
 					}
 
                 }
