@@ -10,6 +10,44 @@
 #define BUFFLEN 1024
 #define MAXCLIENTS 10
 
+char* GenerateUserString(char* word)
+{
+	char* userString = malloc(strlen(word));
+	for(int i=0;i<strlen(word);i++)
+	{
+		*(userString+i) = '_';
+	}
+	return userString;
+}
+
+int GetRandomNumber(int max)
+{
+    time_t t;
+    srand((unsigned) time(&t));
+    return rand()%max;
+}
+char* GetRandomWord()
+{
+    FILE *fd;
+    int wordLength = 50;
+
+    char currentWord[wordLength];
+    char words[100][wordLength];
+    int wordCount=0;
+
+    fd = fopen("WordBank.txt","r");
+    while(fgets(currentWord,wordLength,fd)!=NULL)
+    {
+        strncpy(words[wordCount],currentWord,strlen(currentWord));
+        wordCount++;
+    }
+    fclose(fd);
+    //choosing random word
+    static char *answer;
+    answer = words[GetRandomNumber(wordCount)];
+    return answer;
+}
+
 int findemptyuser(int c_sockets[]){
     int i;
     for (i = 0; i <  MAXCLIENTS; i++){
