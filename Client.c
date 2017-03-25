@@ -11,6 +11,22 @@
 
 #define BUFFLEN 1024
 
+void SendUsername(int socket, char* username)
+{//U:|strlen(username)|username
+	char* msgToSend;
+	msgToSend = (char*)malloc(5+strlen(username));
+	strcpy(msgToSend,"U:|");
+	
+	char* usernameLength = malloc(2);
+	sprintf(usernameLength,"%d",strlen(username));
+	strcat(msgToSend,usernameLength);
+	strcat(msgToSend,"|");
+	
+	strcat(msgToSend,username);
+	strcat(msgToSend,"\0");
+	write(socket,msgToSend,strlen(msgToSend));
+}
+
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
@@ -58,12 +74,12 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-	char* username = "Testuser00";
-	/*
+	//char* username = "Klientas";
+	
 	char* username;
 	printf("Enter username:");
 	scanf("%s",username);
-	*/
+	
 	
     if (connect(s_socket,(struct sockaddr*)&servaddr,sizeof(servaddr))<0){
         fprintf(stderr,"ERROR #4: error in connect().\n");
@@ -72,7 +88,7 @@ int main(int argc, char *argv[]){
     memset(&sendbuffer,0,BUFFLEN);
     fcntl(0,F_SETFL,fcntl(0,F_GETFL,0)|O_NONBLOCK);
 	
-	//static bool wasUsernameSent = false;
+	static bool wasUsernameSent = false;
 	
     while (1){
         FD_ZERO(&read_set);
@@ -80,12 +96,12 @@ int main(int argc, char *argv[]){
         FD_SET(0,&read_set);
 
         select(s_socket+1,&read_set,NULL,NULL,NULL);
-/*
+
 		if(!wasUsernameSent)
 		{
-			write(s_socket,username,strlen(username));
+			SendUsername(s_socket,username);
 			wasUsernameSent = true;
-		}*/
+		}
 		
         if (FD_ISSET(s_socket, &read_set))
 		{
