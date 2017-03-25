@@ -75,10 +75,8 @@ struct hangmanGame{
 	char username[MAXCLIENTS][maxUsernameLength];
 }hangman;
 
-void SetupNewUser(int c_sockets[], int id)
+void SetupNewUser(int id)
 {
-	//recv(c_sockets[id],&hangman.username[id],maxUsernameLength,0);//get username
-	//memcpy(hangman.username[id],"TServ00",strlen("TServ00"));
 	hangman.lives[id] = lives;
 	
 	char* tempWord = GetRandomWord();
@@ -183,7 +181,7 @@ int main(int argc, char *argv[]){
                 memset(&clientaddr, 0, clientaddrlen);
                 c_sockets[client_id] = accept(l_socket, 
                     (struct sockaddr*)&clientaddr, &clientaddrlen);
-				SetupNewUser(c_sockets,client_id);
+				SetupNewUser(client_id);
                 printf("Connected: %s\n",inet_ntoa(clientaddr.sin_addr));
             }
         }
@@ -193,15 +191,17 @@ int main(int argc, char *argv[]){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
 					int w_len;
+					
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
-						printf("%s\n",hangman.username[i]);
+						printf("%s",buffer);
+						//printf("%s\n",hangman.username[i]);
 					}
 					
 					else if(buffer[0]=='/')//main sequences
 					{
-						if(strstr(quitHandle,buffer)!=NULL)
+						if(strstr(buffer,quitHandle)!=NULL)
 						{
 							//DisconnectUser(c_sockets[i]);
 							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);

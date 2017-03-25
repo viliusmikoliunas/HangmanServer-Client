@@ -10,7 +10,9 @@
 #include <stdbool.h>
 
 #define BUFFLEN 1024
+#define maxUsernameLength 50
 
+static char* usernameHandle = "U:";
 static char* quitHandle = "/Q";
 static char* playHandle = "/P";
 static char* statHandle = "/S";
@@ -23,9 +25,9 @@ static char userStatsChar = '2';
 
 void SendUsername(int socket, char* username)
 {//U:|strlen(username)|username
-	char* msgToSend;
-	msgToSend = (char*)malloc(5+strlen(username));
-	strcpy(msgToSend,"U:|");
+	*(username+strlen(username)-1) = '\0';//cut \n symbol from the back
+	char* msgToSend = (char*)malloc(strlen(username)+5);
+	strcpy(msgToSend,usernameHandle);
 	
 	char* usernameLength = malloc(2);
 	sprintf(usernameLength,"%d",strlen(username));
@@ -91,10 +93,9 @@ int main(int argc, char *argv[]){
 
 	//char* username = "Klientas";
 	
-	char* username;
+	char* username = malloc(maxUsernameLength);
 	printf("Enter username:");
-	scanf("%s",username);
-	
+	fgets(username,maxUsernameLength,stdin);
 	
     if (connect(s_socket,(struct sockaddr*)&servaddr,sizeof(servaddr))<0){
         fprintf(stderr,"ERROR #4: error in connect().\n");
@@ -121,6 +122,7 @@ int main(int argc, char *argv[]){
 		if(!usernameSent)
 		{
 			SendUsername(s_socket,username);
+			write(s_socket,"\n",1);
 			usernameSent = true;
 		}
 		
@@ -138,22 +140,25 @@ int main(int argc, char *argv[]){
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
             i = read(0,&sendbuffer,BUFFLEN);
-			
-			if(sendbuffer[0]==userQuitChar) 
+			if(sendbuffer[0]==userQuitChar) //users wants to quit
 			{
 				write(s_socket, quitHandle,strlen(quitHandle));
 			}
-			else if(sendbuffer[0]==userStartChar && !gameUnderway)
+			
+			if(!gameUnderway)
 			{
-				gameUnderway = true;
-				write(s_socket, playHandle,strlen(playHandle));
-			}
-			else if (sendbuffer[0] == userStatsChar && !gameUnderway)
-			{
-				write(s_socket, statHandle,strlen(statHandle));
+				if(sendbuffer[0]==userStartChar)//user wants to play
+				{
+					gameUnderway = true;
+					write(s_socket, playHandle,strlen(playHandle));
+				}
+				else if (sendbuffer[0] == userStatsChar)//user wants statistics
+				{
+					write(s_socket, statHandle,strlen(statHandle));
+				}
 			}
 			
-            else write(s_socket, sendbuffer,i);
+            else write(s_socket, sendbuffer,i);//!!! i
         }
     }
 	puts("You have been disconnected");
