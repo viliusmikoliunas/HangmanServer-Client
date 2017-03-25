@@ -14,6 +14,8 @@ static const int lives = 5;
 #define maxWordLength 20
 #define maxUsernameLength 50
 
+char* usernameHandle = "U:";
+
 char* GenerateUserString(char* word)
 {
 	char* userString = malloc(strlen(word));
@@ -72,7 +74,7 @@ struct hangmanGame{
 void SetupNewUser(int c_sockets[], int id)
 {
 	//recv(c_sockets[id],&hangman.username[id],maxUsernameLength,0);//get username
-	memcpy(hangman.username[id],"TServ00",strlen("TServ00"));
+	//memcpy(hangman.username[id],"TServ00",strlen("TServ00"));
 	hangman.lives[id] = lives;
 	
 	char* tempWord = GetRandomWord();
@@ -80,6 +82,21 @@ void SetupNewUser(int c_sockets[], int id)
 	
 	char* tempUserString = GenerateUserString(tempWord);
 	memcpy(hangman.userString[id],tempUserString,strlen(tempUserString));
+}
+void SaveUsername(char* buffer, int user_id)
+{//buffer = U:|strlen(username)|username
+
+	char* name = buffer+3;//name = strlen(username)|username
+	char* usernameLength = malloc(3);
+	int counter=0;
+	while(*(name+counter)!='|')
+	{
+		*(usernameLength+counter) = *(name+counter);
+		counter++;
+	}
+	long length = strtol(usernameLength,NULL,10);
+	char* username = buffer + 3 + counter + 1;
+	strncpy(hangman.username[user_id],username,(int)length);
 }
 
 int main(int argc, char *argv[]){
@@ -136,14 +153,12 @@ int main(int argc, char *argv[]){
     }
 
 
-    for (;;){
+    while(1){
         FD_ZERO(&read_set);
         for (i = 0; i < MAXCLIENTS; i++){
             if (c_sockets[i] != -1){
                 FD_SET(c_sockets[i], &read_set);
-                if (c_sockets[i] > maxfd){
-                    maxfd = c_sockets[i];
-                }
+				maxfd = (c_sockets[i] > maxfd) ? c_sockets[i] : maxfd;
             }
         }
 
@@ -159,10 +174,8 @@ int main(int argc, char *argv[]){
                 memset(&clientaddr, 0, clientaddrlen);
                 c_sockets[client_id] = accept(l_socket, 
                     (struct sockaddr*)&clientaddr, &clientaddrlen);
-					
 				SetupNewUser(c_sockets,client_id);
-                printf("Connected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr)
-					,hangman.username[client_id]);
+                printf("Connected: %s\n",inet_ntoa(clientaddr.sin_addr));
 				
             }
         }
@@ -171,13 +184,20 @@ int main(int argc, char *argv[]){
                 if (FD_ISSET(c_sockets[i], &read_set)){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
-					int w_len = send(c_sockets[i], buffer, strlen(buffer),0);
-					
-					if(w_len<=0)
+					int w_len;
+					if(strstr(buffer,usernameHandle)!=NULL)
 					{
+						SaveUsername(buffer,i);
+						printf("%s\n",hangman.username[i]);
+						w_len = send(c_sockets[i], hangman.username[i], strlen(hangman.username[i]),0);
+					}
+					else w_len = send(c_sockets[i], buffer, strlen(buffer),0);
+
+					if(w_len<=0)
+					{			
+						//printf("Disconnected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr));
 						close(c_sockets[i]);
 						c_sockets[i] = -1;
-						//printf("Disconnected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr));
 					}
 
                 }
