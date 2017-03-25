@@ -14,7 +14,11 @@ static const int lives = 5;
 #define maxWordLength 20
 #define maxUsernameLength 50
 
-char* usernameHandle = "U:";
+static char* usernameHandle = "U:";
+static char* quitHandle = "/Q";
+static char* playHandle = "/P";
+static char* statHandle = "/S";
+static char* disconnectHandle = "/D";
 
 char* GenerateUserString(char* word)
 {
@@ -96,9 +100,14 @@ void SaveUsername(char* buffer, int user_id)
 	}
 	long length = strtol(usernameLength,NULL,10);
 	char* username = buffer + 3 + counter + 1;
+	strcat(username,"\0");
 	strncpy(hangman.username[user_id],username,(int)length);
 }
-
+void DisconnectUser(int socket)
+{
+	close(socket);
+	socket = -1;
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     unsigned int clientaddrlen;
@@ -176,7 +185,6 @@ int main(int argc, char *argv[]){
                     (struct sockaddr*)&clientaddr, &clientaddrlen);
 				SetupNewUser(c_sockets,client_id);
                 printf("Connected: %s\n",inet_ntoa(clientaddr.sin_addr));
-				
             }
         }
         for (i = 0; i < MAXCLIENTS; i++){
@@ -185,20 +193,31 @@ int main(int argc, char *argv[]){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
 					int w_len;
-					if(strstr(buffer,usernameHandle)!=NULL)
+					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
 						printf("%s\n",hangman.username[i]);
-						w_len = send(c_sockets[i], hangman.username[i], strlen(hangman.username[i]),0);
+					}
+					
+					else if(buffer[0]=='/')//main sequences
+					{
+						if(strstr(quitHandle,buffer)!=NULL)
+						{
+							//DisconnectUser(c_sockets[i]);
+							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
+							close(c_sockets[i]);
+							c_sockets[i] = -1;
+						}
 					}
 					else w_len = send(c_sockets[i], buffer, strlen(buffer),0);
 
+					/*
 					if(w_len<=0)
-					{			
-						//printf("Disconnected: %s , Username:%s\n",inet_ntoa(clientaddr.sin_addr));
-						close(c_sockets[i]);
-						c_sockets[i] = -1;
-					}
+					{		
+						DisconnectUser(c_sockets[i]);
+						//close(c_sockets[i]);
+						//c_sockets[i] = -1;
+					}*/
 
                 }
             }

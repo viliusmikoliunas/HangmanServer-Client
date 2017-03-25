@@ -11,6 +11,11 @@
 
 #define BUFFLEN 1024
 
+static char* quitHandle = "/Q";
+static char* playHandle = "/P";
+static char* statHandle = "/S";
+static char* disconnectHandle = "/D";
+
 void SendUsername(int socket, char* username)
 {//U:|strlen(username)|username
 	char* msgToSend;
@@ -26,7 +31,12 @@ void SendUsername(int socket, char* username)
 	strcat(msgToSend,"\0");
 	write(socket,msgToSend,strlen(msgToSend));
 }
-
+void PrintMenu()
+{	
+	puts("0.Quit");
+	puts("1.Start");
+	puts("2.Stats");
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
@@ -85,37 +95,62 @@ int main(int argc, char *argv[]){
         fprintf(stderr,"ERROR #4: error in connect().\n");
         exit(1);
     }
+	else 
+	{
+		puts("Welcome to Hangman");
+		PrintMenu();
+	}
     memset(&sendbuffer,0,BUFFLEN);
     fcntl(0,F_SETFL,fcntl(0,F_GETFL,0)|O_NONBLOCK);
 	
-	static bool wasUsernameSent = false;
+	static bool usernameSent = false;
 	
-    while (1){
+    while (1)
+	{
         FD_ZERO(&read_set);
         FD_SET(s_socket,&read_set);
         FD_SET(0,&read_set);
 
         select(s_socket+1,&read_set,NULL,NULL,NULL);
 
-		if(!wasUsernameSent)
+		if(!usernameSent)
 		{
 			SendUsername(s_socket,username);
-			wasUsernameSent = true;
+			usernameSent = true;
 		}
 		
         if (FD_ISSET(s_socket, &read_set))
 		{
             memset(&recvbuffer,0,BUFFLEN);
             i = read(s_socket, &recvbuffer, BUFFLEN);
+			if(strstr(recvbuffer,disconnectHandle)!=NULL)
+			{
+				break;
+			}
             printf("%s\n",recvbuffer);
         }
+		
         else if (FD_ISSET(0,&read_set))
 		{
             i = read(0,&sendbuffer,BUFFLEN);
-            write(s_socket, sendbuffer,i);
+			
+			if(sendbuffer[0]=='0') 
+			{
+				write(s_socket, quitHandle,strlen(quitHandle));
+			}
+			else if(sendbuffer[0]=='1')
+			{
+				write(s_socket, playHandle,strlen(playHandle));
+			}
+			else if (sendbuffer[0] == '2')
+			{
+				write(s_socket, statHandle,strlen(statHandle));
+			}
+			
+            else write(s_socket, sendbuffer,i);
         }
     }
-
+	puts("You have been disconnected");
     close(s_socket);
     return 0;
 }
