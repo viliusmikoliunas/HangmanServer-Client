@@ -16,6 +16,11 @@ static char* playHandle = "/P";
 static char* statHandle = "/S";
 static char* disconnectHandle = "/D";
 
+//recommended - single digit
+static char userQuitChar = '0';
+static char userStartChar = '1';
+static char userStatsChar = '2';
+
 void SendUsername(int socket, char* username)
 {//U:|strlen(username)|username
 	char* msgToSend;
@@ -33,9 +38,9 @@ void SendUsername(int socket, char* username)
 }
 void PrintMenu()
 {	
-	puts("0.Quit");
-	puts("1.Start");
-	puts("2.Stats");
+	printf("%c.Quit\n",userQuitChar);
+	printf("%c.Start\n",userStartChar);
+	printf("%c.Stats\n",userStatsChar);
 }
 int main(int argc, char *argv[]){
     unsigned int port;
@@ -104,7 +109,7 @@ int main(int argc, char *argv[]){
     fcntl(0,F_SETFL,fcntl(0,F_GETFL,0)|O_NONBLOCK);
 	
 	static bool usernameSent = false;
-	
+	static bool gameUnderway = false;
     while (1)
 	{
         FD_ZERO(&read_set);
@@ -119,30 +124,31 @@ int main(int argc, char *argv[]){
 			usernameSent = true;
 		}
 		
-        if (FD_ISSET(s_socket, &read_set))
+        if (FD_ISSET(s_socket, &read_set))//gavimas
 		{
             memset(&recvbuffer,0,BUFFLEN);
             i = read(s_socket, &recvbuffer, BUFFLEN);
 			if(strstr(recvbuffer,disconnectHandle)!=NULL)
 			{
 				break;
-			}
-            printf("%s\n",recvbuffer);
+            }
+			printf("%s\n",recvbuffer);
         }
 		
-        else if (FD_ISSET(0,&read_set))
+        else if (FD_ISSET(0,&read_set))//siuntimas
 		{
             i = read(0,&sendbuffer,BUFFLEN);
 			
-			if(sendbuffer[0]=='0') 
+			if(sendbuffer[0]==userQuitChar) 
 			{
 				write(s_socket, quitHandle,strlen(quitHandle));
 			}
-			else if(sendbuffer[0]=='1')
+			else if(sendbuffer[0]==userStartChar && !gameUnderway)
 			{
+				gameUnderway = true;
 				write(s_socket, playHandle,strlen(playHandle));
 			}
-			else if (sendbuffer[0] == '2')
+			else if (sendbuffer[0] == userStatsChar && !gameUnderway)
 			{
 				write(s_socket, statHandle,strlen(statHandle));
 			}
