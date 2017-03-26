@@ -69,9 +69,10 @@ void SetupNewUser(int user_id)
 	char* tempWord = GetRandomWord();
 	strcpy(hangman.word[user_id],tempWord);
 	*(hangman.word[user_id]+strlen(hangman.word[user_id])-1) = '\0';// \n ->> \0
-	
+	puts(hangman.word[user_id]);
 	char* tempUserString = GenerateUserString(hangman.word[user_id]);
 	strcpy(hangman.userString[user_id],tempUserString);
+	puts(hangman.userString[user_id]);
 }
 
 void SaveUsername(char* buffer, int user_id)
@@ -92,20 +93,32 @@ void SaveUsername(char* buffer, int user_id)
 		*(username+i) = *(buffer+strlen(usernameHandle)+strlen(usernameLength)+2+i);
 	}
 	*(username+length) = '\0';
-	//strncpy(hangman.username[user_id],username,(int)length);
 	strcpy(hangman.username[user_id],username);
 	free(username);
 	free(usernameLength);
 }
 int ProcessGameMove(char* buffer, int socket, int user_id)
 {
+	printf("Priimta:%s|\n",buffer);
 	char* gameMove = malloc(10);
+	if(strstr(buffer,"\n")!=NULL) *(buffer+strlen(buffer)-1) = '\0';
 	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
-	if(strlen(gameMove)>1) return 1;//too long
+	if(strlen(gameMove)>1)
+	{
+		puts("S:Too long");
+		return 1;//too long
+	}
 	char ch = *gameMove;
-	if(!isalpha(ch)) return 2;//not letter
-	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) return 3;//letter already used
-	
+	if(!isalpha(ch))
+	{
+		puts("S:Not letter");
+		return 2;//not letter
+	}		
+	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) 
+	{
+		puts("S:Used already");
+		return 3;//letter already used
+	}
 	char* tempGuessString = malloc(strlen(hangman.userString[user_id]));
 	strcpy(tempGuessString,hangman.userString[user_id]);
 	for(int i=0;i<strlen(tempGuessString);i++)
@@ -115,6 +128,7 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 			*(hangman.userString[user_id]+i) = tolower(ch);
 		}
 	}
+	/*
 	if(strcmp(hangman.userString[user_id],tempGuessString)==0)
 	{
 		hangman.lives[user_id]--;
@@ -128,13 +142,14 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		
 		free(livesLeft);
 		free(livesMsg);
-	}
+	}*/
 	send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
 		puts(hangman.userString[user_id]);
 	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
 	hangman.usedLetterCounter[user_id]++;
 	free(tempGuessString);
 	free(gameMove);
+	puts("S:Success");
 	return 0;
 }
 void DisconnectUser(int socket)
@@ -226,6 +241,7 @@ int main(int argc, char *argv[]){
                 if (FD_ISSET(c_sockets[i], &read_set)){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
+					printf("Gauta:%s|\n",buffer);
 					int w_len;
 					
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
