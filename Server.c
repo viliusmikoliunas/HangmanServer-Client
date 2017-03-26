@@ -15,6 +15,8 @@ static const int lives = 5;
 #define maxUsernameLength 50
 
 static char* usernameHandle = "U:";
+static char* gameMoveHandle = "M:";
+
 static char* quitHandle = "/Q";
 static char* playHandle = "/P";
 static char* statHandle = "/S";
@@ -88,7 +90,7 @@ void SetupNewUser(int id)
 void SaveUsername(char* buffer, int user_id)
 {//buffer = U:|strlen(username)|username
 
-	char* name = buffer+3;//name = strlen(username)|username
+	char* name = buffer+strlen(usernameHandle)+1;//name = strlen(username)|username
 	char* usernameLength = malloc(3);
 	int counter=0;
 	while(*(name+counter)!='|')
@@ -100,6 +102,16 @@ void SaveUsername(char* buffer, int user_id)
 	char* username = buffer + 3 + counter + 1;
 	strcat(username,"\0");
 	strncpy(hangman.username[user_id],username,(int)length);
+}
+int ProcessGameMove(char* move, int socket)
+{
+	char* gameMove = malloc(10);
+	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
+	if(strlen(gameMove)>1) return 1;//too long
+	char ch = *gameMove;
+	if(!isalpha(ch)) return 2;//not letter
+	
+	
 }
 void DisconnectUser(int socket)
 {
@@ -195,16 +207,28 @@ int main(int argc, char *argv[]){
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
-						printf("%s",buffer);
-						//printf("%s\n",hangman.username[i]);
+						printf("%s\n",buffer);
 					}
 					
-					else if(buffer[0]=='/')//main sequences
+					else if (strstr(buffer,gameMoveHandle)!=NULL)
+					{
+						ProcessGameMove(buffer,i);
+					}
+					
+					else if (buffer[0]=='/')//menu sequences
 					{
 						if(strstr(buffer,quitHandle)!=NULL)
 						{
 							//DisconnectUser(c_sockets[i]);
 							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
+							hangman.lives[i] = 0;
+							strcpy(hangman.words[i],NULL);
+							strcpy(hangman.userString[i],NULL);
+							strcpy(hangman.username[i],NULL);
+							/*
+							hangman.words[i] = NULL;
+							hangman.userString[i] = NULL;
+							hangman.username[i] = NULL;*/
 							close(c_sockets[i]);
 							c_sockets[i] = -1;
 						}
