@@ -1,5 +1,25 @@
-#include "Libraries.h"
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <ctype.h>
+
+#define BUFFLEN 1024
+#define maxUsernameLength 50
+
+static char* usernameHandle = "U:";
+static char* gameMoveHandle = "M:";
+
+static char* quitHandle = "/Q";
+static char* playHandle = "/P";
+static char* statHandle = "/S";
+static char* disconnectHandle = "/D";
 
 //recommended - digit
 static char userQuitChar = '0';
@@ -11,7 +31,6 @@ void SendUsername(int socket, char* username)
 	*(username+strlen(username)-1) = '\0';//cut \n symbol from the back
 	char* msgToSend = (char*)malloc(strlen(username)+5);
 	strcpy(msgToSend,usernameHandle);
-	strcat(msgToSend,"|");
 	
 	char* usernameLength = malloc(2);
 	sprintf(usernameLength,"%d",strlen(username));
@@ -20,7 +39,6 @@ void SendUsername(int socket, char* username)
 	
 	strcat(msgToSend,username);
 	strcat(msgToSend,"\0");
-	printf("%s\n",msgToSend);
 	write(socket,msgToSend,strlen(msgToSend));
 }
 void PrintMenu()
