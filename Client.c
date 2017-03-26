@@ -30,7 +30,8 @@ void PrintMenu()
 }
 int SendGameMove(int socket,char* move)
 {
-	*(move+1) = '\0'; //getting rid of \n
+	*(move+strlen(move)-1) = '\0'; //getting rid of \n
+	printf("Inputas:%s|\n",move);
 	if(strlen(move)!=1) return 1;//input is longer than one char
 	int ch = (int)*move;
 	if(!isalpha(ch)) return 2;//input is not a letter
@@ -40,6 +41,22 @@ int SendGameMove(int socket,char* move)
 	strcat(gameMove,move);
 	
 	write(socket,gameMove,strlen(gameMove));
+	return 0;
+}
+int SendGameMove2(int socket, char* buffer)
+{
+	printf("User:%s|\n",buffer);
+	if(strlen(buffer)>2) return 1;
+	char ch = *buffer;
+	if(!isalpha(ch)) return 2;
+	char* msgToSend = malloc(3);
+	
+	strcpy(msgToSend,gameMoveHandle);
+	strncat(msgToSend,buffer,1);
+	printf("Siuntinys:%s|\n",msgToSend);
+	
+	write(socket,msgToSend,strlen(msgToSend));
+	free(msgToSend);
 	return 0;
 }
 int main(int argc, char *argv[]){
@@ -136,7 +153,8 @@ int main(int argc, char *argv[]){
 		
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
-			i = read(0,&sendbuffer,BUFFLEN);
+			//i = read(0,&sendbuffer,BUFFLEN);
+			fgets(sendbuffer,BUFFLEN,stdin);
 			if(sendbuffer[0]==userQuitChar) //users wants to quit
 			{
 				write(s_socket, quitHandle,strlen(quitHandle));
@@ -144,9 +162,11 @@ int main(int argc, char *argv[]){
 			
 			if(gameUnderway)
 			{
-				int err = SendGameMove(s_socket,sendbuffer);
+				int err = SendGameMove2(s_socket,sendbuffer);
+				if (err==0) puts("Great success");
+				else if(err==1) puts("Too long");
+				else if (err==2) puts("Not letter");
 			}
-
 
 			if(!gameUnderway)
 			{
