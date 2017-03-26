@@ -7,10 +7,11 @@ static const int lives = 5;
 char* GenerateUserString(char* word)
 {
 	char* userString = malloc(strlen(word));
-	for(int i=0;i<strlen(word);i++)
+	for(int i=0;i<strlen(word)-1;i++)
 	{
 		*(userString+i) = '_';
 	}
+	*(userString+strlen(word)-1) = '\0';
 	return userString;
 }
 
@@ -61,15 +62,16 @@ struct hangmanGame{
 	int usedLetterCounter[30];
 }hangman;
 
-void SetupNewUser(int id)
+void SetupNewUser(int user_id)
 {
-	hangman.lives[id] = lives;
+	hangman.lives[user_id] = lives;
 	
 	char* tempWord = GetRandomWord();
-	memcpy(hangman.word[id],tempWord,strlen(tempWord));
+	strcpy(hangman.word[user_id],tempWord);
+	*(hangman.word[user_id]+strlen(hangman.word[user_id])-1) = '\0';// \n ->> \0
 	
-	char* tempUserString = GenerateUserString(tempWord);
-	memcpy(hangman.userString[id],tempUserString,strlen(tempUserString));
+	char* tempUserString = GenerateUserString(hangman.word[user_id]);
+	strcpy(hangman.userString[user_id],tempUserString);
 }
 
 void SaveUsername(char* buffer, int user_id)
@@ -106,7 +108,7 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	strcpy(tempGuessString,hangman.userString[user_id]);
 	for(int i=0;i<strlen(tempGuessString);i++)
 	{
-		if(*(hangman.word[i]+i)==tolower(ch))
+		if(*(hangman.word[user_id]+i)==tolower(ch))
 		{
 			*(hangman.userString[user_id]+i) = tolower(ch);
 		}
@@ -120,11 +122,13 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		sprintf(livesLeft,"%d",hangman.lives[user_id]);
 		strcat(livesMsg,livesLeft);
 		send(socket,livesMsg,strlen(livesMsg),0);
+			puts(livesMsg);
 		
 		free(livesLeft);
 		free(livesMsg);
 	}
 	send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
+		puts(hangman.userString[user_id]);
 	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
 	hangman.usedLetterCounter[user_id]++;
 	free(tempGuessString);
