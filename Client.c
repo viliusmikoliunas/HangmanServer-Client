@@ -8,17 +8,20 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define BUFFLEN 1024
 #define maxUsernameLength 50
 
 static char* usernameHandle = "U:";
+static char* gameMoveHandle = "M:";
+
 static char* quitHandle = "/Q";
 static char* playHandle = "/P";
 static char* statHandle = "/S";
 static char* disconnectHandle = "/D";
 
-//recommended - single digit
+//recommended - digit
 static char userQuitChar = '0';
 static char userStartChar = '1';
 static char userStatsChar = '2';
@@ -43,6 +46,20 @@ void PrintMenu()
 	printf("%c.Quit\n",userQuitChar);
 	printf("%c.Start\n",userStartChar);
 	printf("%c.Stats\n",userStatsChar);
+}
+int SendGameMove(int socket,char* move)
+{
+	*(move+1) = '\0'; //getting rid of \n
+	if(strlen(move)!=1) return 1;//input is longer than one char
+	int ch = (int)*move;
+	if(!isalpha(ch)) return 2;//input is not a letter
+	char* gameMove = malloc(3);
+	
+	strcpy(gameMove,gameMoveHandle);
+	strcat(gameMove,move);
+	
+	write(socket,gameMove,strlen(gameMove));
+	return 0;
 }
 int main(int argc, char *argv[]){
     unsigned int port;
@@ -122,7 +139,6 @@ int main(int argc, char *argv[]){
 		if(!usernameSent)
 		{
 			SendUsername(s_socket,username);
-			write(s_socket,"\n",1);
 			usernameSent = true;
 		}
 		
@@ -139,12 +155,18 @@ int main(int argc, char *argv[]){
 		
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
-            i = read(0,&sendbuffer,BUFFLEN);
+			i = read(0,&sendbuffer,BUFFLEN);
 			if(sendbuffer[0]==userQuitChar) //users wants to quit
 			{
 				write(s_socket, quitHandle,strlen(quitHandle));
 			}
 			
+			if(gameUnderway)
+			{
+				int err = SendGameMove(s_socket,sendbuffer);
+			}
+
+
 			if(!gameUnderway)
 			{
 				if(sendbuffer[0]==userStartChar)//user wants to play
