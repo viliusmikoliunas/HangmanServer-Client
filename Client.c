@@ -1,6 +1,7 @@
 #include "Libraries.h"
 #include <fcntl.h>
 
+
 //recommended - digit
 static char userQuitChar = '0';
 static char userStartChar = '1';
@@ -45,7 +46,7 @@ int SendGameMove(int socket,char* move)
 }
 int SendGameMove2(int socket, char* buffer)
 {
-	printf("User:%s|\n",buffer);
+	//printf("User:%s|\n",buffer);
 	if(strlen(buffer)>2) return 1;
 	char ch = *buffer;
 	if(!isalpha(ch)) return 2;
@@ -53,7 +54,7 @@ int SendGameMove2(int socket, char* buffer)
 	
 	strcpy(msgToSend,gameMoveHandle);
 	strncat(msgToSend,buffer,1);
-	printf("Siuntinys:%s|\n",msgToSend);
+	//printf("Siuntinys:%s|\n",msgToSend);
 	
 	write(socket,msgToSend,strlen(msgToSend));
 	free(msgToSend);
@@ -163,9 +164,9 @@ int main(int argc, char *argv[]){
 			if(gameUnderway)
 			{
 				int err = SendGameMove2(s_socket,sendbuffer);
-				if (err==0) puts("Great success");
-				else if(err==1) puts("Too long");
-				else if (err==2) puts("Not letter");
+				//if (err==0) puts("Great success");
+				//else if(err==1) puts("Too long");
+				//else if (err==2) puts("Not letter");
 			}
 
 			if(!gameUnderway)
@@ -173,15 +174,14 @@ int main(int argc, char *argv[]){
 				if(sendbuffer[0]==userStartChar)//user wants to play
 				{
 					gameUnderway = true;
-					write(s_socket, playHandle,strlen(playHandle));
+					//write(s_socket, playHandle,strlen(playHandle));
 				}
 				else if (sendbuffer[0] == userStatsChar)//user wants statistics
 				{
 					write(s_socket, statHandle,strlen(statHandle));
 				}
-			}
-			
-            else write(s_socket, sendbuffer,i);//!!! i
+			}		
+            //else write(s_socket, sendbuffer,i);//!!! i
         }
     }
 	puts("You have been disconnected");
