@@ -1,26 +1,8 @@
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <string.h>
-#include <unistd.h>
+#include "Libraries.h"
 
-#define BUFFLEN 1024
 #define MAXCLIENTS 10
-
-static const int lives = 5;
 #define maxWordLength 20
-#define maxUsernameLength 50
-
-static char* usernameHandle = "U:";
-static char* gameMoveHandle = "M:";
-
-static char* quitHandle = "/Q";
-static char* playHandle = "/P";
-static char* statHandle = "/S";
-static char* disconnectHandle = "/D";
+static const int lives = 5;
 
 char* GenerateUserString(char* word)
 {
@@ -72,9 +54,11 @@ int findemptyuser(int c_sockets[]){
 
 struct hangmanGame{
 	int lives[MAXCLIENTS];
-	char words[MAXCLIENTS][maxWordLength];
+	char word[MAXCLIENTS][maxWordLength];
 	char userString[MAXCLIENTS][maxWordLength];
 	char username[MAXCLIENTS][maxUsernameLength];
+	char usedLetters[MAXCLIENTS][30];
+	int usedLetterCounter[30];
 }hangman;
 
 void SetupNewUser(int id)
@@ -82,14 +66,15 @@ void SetupNewUser(int id)
 	hangman.lives[id] = lives;
 	
 	char* tempWord = GetRandomWord();
-	memcpy(hangman.words[id],tempWord,strlen(tempWord));
+	memcpy(hangman.word[id],tempWord,strlen(tempWord));
 	
 	char* tempUserString = GenerateUserString(tempWord);
 	memcpy(hangman.userString[id],tempUserString,strlen(tempUserString));
 }
+
 void SaveUsername(char* buffer, int user_id)
 {//buffer = U:|strlen(username)|username
-
+	
 	char* name = buffer+strlen(usernameHandle)+1;//name = strlen(username)|username
 	char* usernameLength = malloc(3);
 	int counter=0;
@@ -99,19 +84,52 @@ void SaveUsername(char* buffer, int user_id)
 		counter++;
 	}
 	long length = strtol(usernameLength,NULL,10);
-	char* username = buffer + 3 + counter + 1;
-	strcat(username,"\0");
+	char* username = malloc(maxUsernameLength);
+	for(int i=0;i<length;i++)
+	{
+		*(username+i) = *(buffer+strlen(usernameHandle)+strlen(usernameLength)+2+i);
+	}
 	strncpy(hangman.username[user_id],username,(int)length);
+	free(username);
+	free(usernameLength);
 }
-int ProcessGameMove(char* move, int socket)
+int ProcessGameMove(char* buffer, int socket, int user_id)
 {
 	char* gameMove = malloc(10);
 	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
 	if(strlen(gameMove)>1) return 1;//too long
 	char ch = *gameMove;
 	if(!isalpha(ch)) return 2;//not letter
+	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) return 3;//letter already used
 	
-	
+	char* tempGuessString = malloc(strlen(hangman.userString[user_id]));
+	strcpy(tempGuessString,hangman.userString[user_id]);
+	for(int i=0;i<strlen(tempGuessString);i++)
+	{
+		if(*(hangman.word[i]+i)==tolower(ch))
+		{
+			*(hangman.userString[user_id]+i) = tolower(ch);
+		}
+	}
+	if(strcmp(hangman.userString[user_id],tempGuessString)==0)
+	{
+		hangman.lives[user_id]--;
+		char* livesMsg = malloc(5);
+		char* livesLeft = malloc(5);
+		strcpy(livesMsg,livesHandle);
+		sprintf(livesLeft,"%d",hangman.lives[user_id]);
+		strcat(livesMsg,livesLeft);
+		send(socket,livesMsg,strlen(livesMsg),0);
+		
+		free(livesLeft);
+		free(livesMsg);
+	}
+	send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
+	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
+	hangman.usedLetterCounter[user_id]++;
+	free(tempGuessString);
+	free(gameMove);
+	return 0;
 }
 void DisconnectUser(int socket)
 {
@@ -207,12 +225,12 @@ int main(int argc, char *argv[]){
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
-						printf("%s\n",buffer);
+						printf("%s\n",hangman.username[i]);
 					}
 					
 					else if (strstr(buffer,gameMoveHandle)!=NULL)
 					{
-						ProcessGameMove(buffer,i);
+						ProcessGameMove(buffer,c_sockets[i],i);
 					}
 					
 					else if (buffer[0]=='/')//menu sequences
@@ -221,12 +239,13 @@ int main(int argc, char *argv[]){
 						{
 							//DisconnectUser(c_sockets[i]);
 							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
+							/*segmentation fault(core dumped)
 							hangman.lives[i] = 0;
-							strcpy(hangman.words[i],NULL);
+							strcpy(hangman.word[i],NULL);
 							strcpy(hangman.userString[i],NULL);
-							strcpy(hangman.username[i],NULL);
+							strcpy(hangman.username[i],NULL);*/
 							/*
-							hangman.words[i] = NULL;
+							hangman.word[i] = NULL;
 							hangman.userString[i] = NULL;
 							hangman.username[i] = NULL;*/
 							close(c_sockets[i]);
