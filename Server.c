@@ -91,7 +91,9 @@ void SaveUsername(char* buffer, int user_id)
 	{
 		*(username+i) = *(buffer+strlen(usernameHandle)+strlen(usernameLength)+2+i);
 	}
-	strncpy(hangman.username[user_id],username,(int)length);
+	*(username+length) = '\0';
+	//strncpy(hangman.username[user_id],username,(int)length);
+	strcpy(hangman.username[user_id],username);
 	free(username);
 	free(usernameLength);
 }
