@@ -156,6 +156,12 @@ int main(int argc, char *argv[]){
 				PrintMenu();
 				gameUnderway = false;
 			}
+			else if (strstr(recvbuffer,gameLostHandle)!=NULL)
+			{
+				puts("You have lost :(");
+				PrintMenu();
+				gameUnderway = false;
+			}
 			else printf("%s\n",recvbuffer);
         }
 		

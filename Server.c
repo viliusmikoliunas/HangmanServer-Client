@@ -128,24 +128,32 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 			*(hangman.userString[user_id]+i) = tolower(ch);
 		}
 	}
-	/*
-	if(strcmp(hangman.userString[user_id],tempGuessString)==0)
+	
+	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)//won
+	{
+		send(socket,gameWonHandle,strlen(gameWonHandle),0);
+		return 0;
+	}
+	
+	else if(strcmp(hangman.userString[user_id],tempGuessString)==0)//if letter is not in word
 	{
 		hangman.lives[user_id]--;
+		if(hangman.lives[user_id]<=0)
+		{
+			send(socket,gameLostHandle,strlen(gameLostHandle),0);
+			return 0;
+		}
+		
 		char* livesMsg = malloc(5);
 		char* livesLeft = malloc(5);
 		strcpy(livesMsg,livesHandle);
 		sprintf(livesLeft,"%d",hangman.lives[user_id]);
 		strcat(livesMsg,livesLeft);
 		send(socket,livesMsg,strlen(livesMsg),0);
-			puts(livesMsg);
+		puts(livesMsg);
 		
 		free(livesLeft);
 		free(livesMsg);
-	}*/
-	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)
-	{
-		send(socket,gameWonHandle,strlen(gameWonHandle),0);
 	}
 	else send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
 		//puts(hangman.userString[user_id]);
