@@ -351,7 +351,24 @@ void SendStatistics(int socket, char* username)
 	char* messageToSend = malloc(50);
 	strcpy(messageToSend,statisticsHandle);
 	
-	
+	FILE *fd;
+	fd=fopen(statisticsPath,"r");
+	char* currentLine = malloc(50);
+	while(fgets(currentLine,50,fd))
+	{
+		if(strstr(currentLine,username)!=NULL)
+		{
+			DissasembleString(currentLine);
+			strcat(messageToSend,statistics.wins);
+			strcat(messageToSend,"|");
+			strcat(messageToSend,statistics.losses);
+			strcat(messageToSend,"\0");
+			send(socket,messageToSend,strlen(messageToSend),0);
+		}
+	}
+	free(currentLine);
+	free(messageToSend);
+	fclose(fd);
 }
 int main(int argc, char *argv[]){
     unsigned int port;

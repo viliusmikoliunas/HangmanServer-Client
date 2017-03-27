@@ -60,6 +60,31 @@ int SendGameMove2(int socket, char* buffer)
 	free(msgToSend);
 	return 0;
 }
+void DisplayStats(char* buffer)
+{
+	int i=strlen(statisticsHandle);
+	char* wins = malloc(5);
+	char* losses = malloc(5);
+	int l=0;
+
+	while(*(buffer+i)!='|')
+	{
+		*(wins+l) = *(buffer+i);
+		l++;
+		i++;
+	}
+	i++;
+	l=0;
+	while(*(buffer+i)!='\0')
+	{
+		*(losses+l) = *(buffer+i);
+		l++;
+		i++;
+	}
+	printf("Wins:%s\nLosses:%s\n",wins,losses);
+	free(losses);
+	free(wins);
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
@@ -149,8 +174,12 @@ int main(int argc, char *argv[]){
 			{
 				break;
             }
+			else if(strstr(recvbuffer,statisticsHandle)!=NULL)
+			{
+				DisplayStats(recvbuffer);
+			}
 			
-			if(strstr(recvbuffer,gameWonHandle)!=NULL)
+			else if(strstr(recvbuffer,gameWonHandle)!=NULL)
 			{
 				puts("Congratz u won");
 				PrintMenu();
