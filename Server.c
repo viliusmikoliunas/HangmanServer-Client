@@ -3,6 +3,8 @@
 #define MAXCLIENTS 10
 #define maxWordLength 20
 static const int lives = 5;
+static const char* wordbankPath = "WordBank.txt";
+static const char* statisticsPath = "Statistics.txt";
 
 char* GenerateUserString(char* word)
 {
@@ -41,7 +43,7 @@ char* GetRandomWord()
     char words[100][wordLength];
     int wordCount=0;
 
-    fd = fopen("WordBank.txt","r");
+    fd = fopen(wordbankPath,"r");
     while(fgets(currentWord,wordLength,fd)!=NULL)
     {
         strncpy(words[wordCount],currentWord,strlen(currentWord));
@@ -199,11 +201,124 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	//puts("S:Success");
 	return 0;
 }
-void DisconnectUser(int socket)
+char* AssembleStringBack(char* username, char* wins, char* losses)
 {
-	close(socket);
-	socket = -1;
+    char* line = malloc(50);
+    strcpy(line,username);
+    strcat(line,"|");
+    strcat(line,wins);
+    strcat(line,"|");
+    strcat(line,losses);
+    strcat(line,"\n");
+
+    free(wins);
+    free(losses);
+    return line;
 }
+char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wins|losses\n
+{
+    //dissasembling string
+    int letterCounter=0;
+    while(*(line+letterCounter)!='|') letterCounter++;//spin through username
+
+    letterCounter++;//wins|losses\n
+
+    int i=0;
+    char* wins = malloc(5);
+    while(*(line+letterCounter)!='|')//read wins
+    {
+        *(wins+i) = *(line+letterCounter);
+        i++;
+        letterCounter++;
+    }
+    *(wins+i) = '\0';
+    letterCounter++;
+    char* losses = malloc(5);
+    i = 0;
+    while(*(line+letterCounter)!='\n')//read losses
+    {
+        *(losses+i) = *(line+letterCounter);
+        i++;
+        letterCounter++;
+    }
+    *(losses+i) = '\0';
+//updating number
+    if(gameStatus)
+    {
+        long number = strtol(wins,NULL,10);
+        number++;
+        sprintf(wins,"%d",number);
+    }
+    else
+    {
+        long number = strtol(losses,NULL,10);
+        number++;
+        sprintf(losses,"%d",number);
+    }
+    //
+
+    return AssembleStringBack(username,wins,losses);
+
+}
+char* CreateNewLine(char* username, char* gameStatus)
+{
+    char* newLine = malloc(50);
+    strcpy(newLine,username);
+
+}
+void SaveStatistics(char* username, bool gameStatus)
+{
+    FILE *fd,*fb;
+    int maxLineLength = 60;
+    char* currentFileLine = malloc(maxLineLength);
+    fd = fopen("WordBank.txt","r+");
+    fb = fopen("TempBuff.txt","r+"); //tmpfile()
+    bool userStatsUpdated = false;
+
+    while(fgets(currentFileLine,maxLineLength,fd)!=NULL)
+    {
+        if(strstr(currentFileLine,username)!=NULL)
+        {
+            char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
+            fprintf(fb,"%s",updatedLine);
+            free(updatedLine);
+            userStatsUpdated = true;
+        }
+        else
+        {
+            fprintf(fb,"%s",currentFileLine);
+        }
+    }
+    if(!userStatsUpdated)
+    {
+        char* newLine;
+        if(gameStatus)
+        {
+            newLine = AssembleStringBack(username,"1","0");
+        }
+        else
+        {
+            newLine = AssembleStringBack(username,"0","1");
+        }
+        fprintf(fb,"%s",newLine);
+        free(newLine);
+    }
+    //copy file
+
+    char c;
+    fseek(fb,0,SEEK_SET);
+    fseek(fd,0,SEEK_SET);
+    do
+    {
+        c = fgetc(fb);
+        fputc(c,fd);
+    } while(c!=EOF);
+
+    free(currentFileLine);
+    fclose(fb);
+    fclose(fd);
+}
+
 int main(int argc, char *argv[]){
     unsigned int port;
     unsigned int clientaddrlen;
@@ -299,6 +414,11 @@ int main(int argc, char *argv[]){
 					else if (strstr(buffer,gameMoveHandle)!=NULL)
 					{
 						ProcessGameMove(buffer,c_sockets[i],i);
+					}
+					
+					else if (strstr(buffer,statHandle)!=NULL)
+					{
+						//SendStatistics(c_sockets[i]);
 					}
 					
 					else if (buffer[0]=='/')//menu sequences
