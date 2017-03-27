@@ -1,3 +1,7 @@
-Super user|5|6
-Test subject|1|10
-Miniature|4|1
+super user|5|6
+test subject|1|10
+
+miniature|1|0
+
+naujas|1|0
+virsila|0|1

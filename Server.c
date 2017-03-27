@@ -5,6 +5,7 @@
 static const int lives = 5;
 static const char* wordbankPath = "WordBank.txt";
 static const char* statisticsPath = "Statistics.txt";
+static const char* tempFilePath = "TempBuff.txt";
 
 char* GenerateUserString(char* word)
 {
@@ -117,90 +118,7 @@ void SaveUsername(char* buffer, int user_id)
 	free(username);
 	free(usernameLength);
 }
-int ProcessGameMove(char* buffer, int socket, int user_id)
-{
-	printf("Priimta:%s|\n",buffer);
-	char* gameMove = malloc(10);
-	if(strstr(buffer,"\n")!=NULL) *(buffer+strlen(buffer)-1) = '\0';
-	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
-	if(strlen(gameMove)>1)
-	{
-		puts("S:Too long");
-		return 1;//too long
-	}
-	char ch = *gameMove;
-	if(!isalpha(ch))
-	{
-		puts("S:Not letter");
-		return 2;//not letter
-	}		
-	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) 
-	{
-		puts("S:Used already");
-		return 3;//letter already used
-	}
-	char* tempGuessString = malloc(strlen(hangman.userString[user_id]));
-	strcpy(tempGuessString,hangman.userString[user_id]);
-	for(int i=0;i<strlen(tempGuessString);i++)
-	{
-		if(*(hangman.word[user_id]+i)==tolower(ch))
-		{
-			*(hangman.userString[user_id]+i) = tolower(ch);
-		}
-	}
-	
-	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)//won
-	{
-		send(socket,gameWonHandle,strlen(gameWonHandle),0);
-		SetupNewUser(user_id);
-		/*Reset stuff
-		hangman.lives[user_id] = lives;
-		strcpy(hangman.word[user_id],GetRandomWord());
-		strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
-		memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
-		hangman.usedLetterCounter[user_id] = 0;*/
-		
-		return 0;
-	}
-	
-	else if(strcmp(hangman.userString[user_id],tempGuessString)==0)//if letter is not in word
-	{
-		hangman.lives[user_id]--;
-		if(hangman.lives[user_id]<=0)
-		{
-			send(socket,gameLostHandle,strlen(gameLostHandle),0);
-			SetupNewUser(user_id);
-			/*Reset stuff
-			hangman.lives[user_id] = lives;
-			strcpy(hangman.word[user_id],GetRandomWord());
-			strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
-			memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
-			hangman.usedLetterCounter[user_id] = 0;*/
-		
-			return 0;
-		}
-		
-		char* livesMsg = malloc(5);
-		char* livesLeft = malloc(5);
-		strcpy(livesMsg,livesHandle);
-		sprintf(livesLeft,"%d",hangman.lives[user_id]);
-		strcat(livesMsg,livesLeft);
-		send(socket,livesMsg,strlen(livesMsg),0);
-		puts(livesMsg);
-		
-		free(livesLeft);
-		free(livesMsg);
-	}
-	else send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
-		//puts(hangman.userString[user_id]);
-	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
-	hangman.usedLetterCounter[user_id]++;
-	free(tempGuessString);
-	free(gameMove);
 
-	//puts("S:Success");
-	return 0;
-}
 char* AssembleStringBack(char* username, char* wins, char* losses)
 {
     char* line = malloc(50);
@@ -209,10 +127,10 @@ char* AssembleStringBack(char* username, char* wins, char* losses)
     strcat(line,wins);
     strcat(line,"|");
     strcat(line,losses);
-    strcat(line,"\n");
+    strcat(line,"\0");
 
-    free(wins);
-    free(losses);
+    //free(wins);
+    //free(losses);
     return line;
 }
 char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wins|losses\n
@@ -271,18 +189,19 @@ void SaveStatistics(char* username, bool gameStatus)
     FILE *fd,*fb;
     int maxLineLength = 60;
     char* currentFileLine = malloc(maxLineLength);
-    fd = fopen("WordBank.txt","r+");
-    fb = fopen("TempBuff.txt","r+"); //tmpfile()
+    fd = fopen(statisticsPath,"r+");
+    fb = fopen(tempFilePath,"w+");
+	//fb = tmpfile(); - not working properly
     bool userStatsUpdated = false;
 
     while(fgets(currentFileLine,maxLineLength,fd)!=NULL)
     {
         if(strstr(currentFileLine,username)!=NULL)
         {
-            char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
-            fprintf(fb,"%s",updatedLine);
-            free(updatedLine);
-            userStatsUpdated = true;
+            //char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
+            //fprintf(fb,"%s",updatedLine);
+            //free(updatedLine);
+            //userStatsUpdated = true;
         }
         else
         {
@@ -301,24 +220,109 @@ void SaveStatistics(char* username, bool gameStatus)
             newLine = AssembleStringBack(username,"0","1");
         }
         fprintf(fb,"%s",newLine);
-        free(newLine);
+        //free(newLine);
     }
     //copy file
 
     char c;
-    fseek(fb,0,SEEK_SET);
-    fseek(fd,0,SEEK_SET);
-    do
+    rewind(fb);
+    rewind(fd);
+	//copying from temp file to main
+    while((c=fgetc(fb))!=EOF)
     {
-        c = fgetc(fb);
         fputc(c,fd);
-    } while(c!=EOF);
-
+    }
+	
     free(currentFileLine);
     fclose(fb);
     fclose(fd);
 }
+int ProcessGameMove(char* buffer, int socket, int user_id)
+{
+	printf("Priimta:%s|\n",buffer);
+	char* gameMove = malloc(10);
+	if(strstr(buffer,"\n")!=NULL) *(buffer+strlen(buffer)-1) = '\0';
+	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
+	if(strlen(gameMove)>1)
+	{
+		puts("S:Too long");
+		return 1;//too long
+	}
+	char ch = *gameMove;
+	if(!isalpha(ch))
+	{
+		puts("S:Not letter");
+		return 2;//not letter
+	}		
+	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) 
+	{
+		puts("S:Used already");
+		return 3;//letter already used
+	}
+	char* tempGuessString = malloc(strlen(hangman.userString[user_id]));
+	strcpy(tempGuessString,hangman.userString[user_id]);
+	for(int i=0;i<strlen(tempGuessString);i++)
+	{
+		if(*(hangman.word[user_id]+i)==tolower(ch))
+		{
+			*(hangman.userString[user_id]+i) = tolower(ch);
+		}
+	}
+	
+	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)//won
+	{
+		send(socket,gameWonHandle,strlen(gameWonHandle),0);
+		SaveStatistics(hangman.username[user_id],1);
+		SetupNewUser(user_id);
+		/*Reset stuff
+		hangman.lives[user_id] = lives;
+		strcpy(hangman.word[user_id],GetRandomWord());
+		strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
+		memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
+		hangman.usedLetterCounter[user_id] = 0;*/
+		
+		return 0;
+	}
+	
+	else if(strcmp(hangman.userString[user_id],tempGuessString)==0)//if letter is not in word
+	{
+		hangman.lives[user_id]--;
+		if(hangman.lives[user_id]<=0)
+		{
+			send(socket,gameLostHandle,strlen(gameLostHandle),0);
+			SaveStatistics(hangman.username[user_id],0);
+			SetupNewUser(user_id);
+			/*Reset stuff
+			hangman.lives[user_id] = lives;
+			strcpy(hangman.word[user_id],GetRandomWord());
+			strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
+			memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
+			hangman.usedLetterCounter[user_id] = 0;*/
+		
+			return 0;
+		}
+		
+		char* livesMsg = malloc(5);
+		char* livesLeft = malloc(5);
+		strcpy(livesMsg,livesHandle);
+		sprintf(livesLeft,"%d",hangman.lives[user_id]);
+		strcat(livesMsg,livesLeft);
+		send(socket,livesMsg,strlen(livesMsg),0);
+		puts(livesMsg);
+		
+		free(livesLeft);
+		free(livesMsg);
+	}
+	else send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
+		//puts(hangman.userString[user_id]);
+	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
+	hangman.usedLetterCounter[user_id]++;
+	free(tempGuessString);
+	free(gameMove);
 
+	//puts("S:Success");
+	return 0;
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     unsigned int clientaddrlen;
