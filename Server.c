@@ -7,11 +7,22 @@ static const int lives = 5;
 char* GenerateUserString(char* word)
 {
 	char* userString = malloc(strlen(word));
-	for(int i=0;i<strlen(word)-1;i++)
+	for(int i=0;i<strlen(word);i++)
 	{
 		*(userString+i) = '_';
 	}
-	*(userString+strlen(word)-1) = '\0';
+	*(userString+strlen(word)) = '\0';
+	return userString;
+}
+char* GenerateUserString2(char* word)
+{
+	char* userString = malloc(30);
+	int i=0;
+	while(*(word+i)!='\0'&&*(word+i)!='\r')
+	{
+		*(userString+i) = '_';
+		i++;
+	}
 	return userString;
 }
 
@@ -38,8 +49,10 @@ char* GetRandomWord()
     }
     fclose(fd);
     //choosing random word
-    static char *answer;
-    answer = words[GetRandomNumber(wordCount)];
+    char *answer = malloc(20);
+    //answer = words[GetRandomNumber(wordCount)];
+	strcpy(answer,words[GetRandomNumber(wordCount)]);
+	*(answer+strlen(answer)-1) = '\0';
     return answer;
 }
 
@@ -68,10 +81,15 @@ void SetupNewUser(int user_id)
 	
 	char* tempWord = GetRandomWord();
 	strcpy(hangman.word[user_id],tempWord);
-	*(hangman.word[user_id]+strlen(hangman.word[user_id])-1) = '\0';// \n ->> \0
+	//printf("%s|\n",hangman.word[user_id]);
+	//*(hangman.word[user_id]+strlen(hangman.word[user_id])-1) = '\0';// \n ->> \0
 	puts(hangman.word[user_id]);
-	char* tempUserString = GenerateUserString(hangman.word[user_id]);
+	char* tempUserString = GenerateUserString2(hangman.word[user_id]);
 	strcpy(hangman.userString[user_id],tempUserString);
+	
+	memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
+	hangman.usedLetterCounter[user_id]=0;
+	
 	puts(hangman.userString[user_id]);
 }
 
@@ -132,6 +150,14 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)//won
 	{
 		send(socket,gameWonHandle,strlen(gameWonHandle),0);
+		SetupNewUser(user_id);
+		/*Reset stuff
+		hangman.lives[user_id] = lives;
+		strcpy(hangman.word[user_id],GetRandomWord());
+		strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
+		memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
+		hangman.usedLetterCounter[user_id] = 0;*/
+		
 		return 0;
 	}
 	
@@ -141,6 +167,14 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		if(hangman.lives[user_id]<=0)
 		{
 			send(socket,gameLostHandle,strlen(gameLostHandle),0);
+			SetupNewUser(user_id);
+			/*Reset stuff
+			hangman.lives[user_id] = lives;
+			strcpy(hangman.word[user_id],GetRandomWord());
+			strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
+			memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
+			hangman.usedLetterCounter[user_id] = 0;*/
+		
 			return 0;
 		}
 		
