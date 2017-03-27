@@ -118,31 +118,29 @@ void SaveUsername(char* buffer, int user_id)
 	free(username);
 	free(usernameLength);
 }
-
-char* AssembleStringBack(char* username, char* wins, char* losses)
+struct PlayerStats
 {
-    char* line = malloc(50);
-    strcpy(line,username);
-    strcat(line,"|");
-    strcat(line,wins);
-    strcat(line,"|");
-    strcat(line,losses);
-    strcat(line,"\0");
+	char* username;
+	char* wins;
+	char* losses;
+}statistics;
 
-    //free(wins);
-    //free(losses);
-    return line;
-}
-char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wins|losses\n
+void DissasembleString(char* line)
 {
-    //dissasembling string
     int letterCounter=0;
-    while(*(line+letterCounter)!='|') letterCounter++;//spin through username
+    int i=0;
+    char *username = malloc(50);
+    while(*(line+letterCounter)!='|')
+    {
+        *(username+i) = *(line+letterCounter);
+        i++;
+        letterCounter++;//spin through username
+    }
 
     letterCounter++;//wins|losses\n
 
-    int i=0;
     char* wins = malloc(5);
+    i = 0;
     while(*(line+letterCounter)!='|')//read wins
     {
         *(wins+i) = *(line+letterCounter);
@@ -151,6 +149,7 @@ char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wi
     }
     *(wins+i) = '\0';
     letterCounter++;
+
     char* losses = malloc(5);
     i = 0;
     while(*(line+letterCounter)!='\n')//read losses
@@ -160,22 +159,46 @@ char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wi
         letterCounter++;
     }
     *(losses+i) = '\0';
+
+    statistics.username = username;
+    statistics.wins = wins;
+    statistics.losses = losses;
+}
+
+char* AssembleStringBack(char* username, char* wins, char* losses)
+{
+    char* line = malloc(50);
+    strcpy(line,username);
+    strcat(line,"|");
+    strcat(line,wins);
+    strcat(line,"|");
+    strcat(line,losses);
+    strcat(line,"\n");
+
+    //free(wins);
+    //free(losses);
+    return line;
+}
+char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wins|losses\n
+{
+	DissasembleString(line);
+	
 //updating number
     if(gameStatus)
     {
-        long number = strtol(wins,NULL,10);
+        long number = strtol(statistics.wins,NULL,10);
         number++;
-        sprintf(wins,"%d",number);
+        sprintf(statistics.wins,"%d",number);
     }
     else
     {
-        long number = strtol(losses,NULL,10);
+        long number = strtol(statistics.losses,NULL,10);
         number++;
-        sprintf(losses,"%d",number);
+        sprintf(statistics.losses,"%d",number);
     }
     //
 
-    return AssembleStringBack(username,wins,losses);
+    return AssembleStringBack(username,statistics.wins,statistics.losses);
 
 }
 char* CreateNewLine(char* username, char* gameStatus)
@@ -198,10 +221,10 @@ void SaveStatistics(char* username, bool gameStatus)
     {
         if(strstr(currentFileLine,username)!=NULL)
         {
-            //char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
-            //fprintf(fb,"%s",updatedLine);
+            char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
+            fprintf(fb,"%s",updatedLine);
             //free(updatedLine);
-            //userStatsUpdated = true;
+            userStatsUpdated = true;
         }
         else
         {
@@ -323,6 +346,13 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	//puts("S:Success");
 	return 0;
 }
+void SendStatistics(int socket, char* username)
+{
+	char* messageToSend = malloc(50);
+	strcpy(messageToSend,statisticsHandle);
+	
+	
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     unsigned int clientaddrlen;
@@ -422,7 +452,7 @@ int main(int argc, char *argv[]){
 					
 					else if (strstr(buffer,statHandle)!=NULL)
 					{
-						//SendStatistics(c_sockets[i]);
+						SendStatistics(c_sockets[i],hangman.username[i]);
 					}
 					
 					else if (buffer[0]=='/')//menu sequences

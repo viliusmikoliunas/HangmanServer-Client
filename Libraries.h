@@ -15,6 +15,7 @@
 static char* usernameHandle = "U:";
 static char* gameMoveHandle = "M:";
 static char* livesHandle = "L:";
+static char* statisticsHandle = "S:";
 
 static char* gameWonHandle = "/W";
 static char* gameLostHandle = "/L";
