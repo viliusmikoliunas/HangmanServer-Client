@@ -149,7 +149,14 @@ int main(int argc, char *argv[]){
 			{
 				break;
             }
-			printf("%s\n",recvbuffer);
+			
+			if(strstr(recvbuffer,gameWonHandle)!=NULL)
+			{
+				puts("Congratz u won");
+				PrintMenu();
+				gameUnderway = false;
+			}
+			else printf("%s\n",recvbuffer);
         }
 		
         else if (FD_ISSET(0,&read_set))//siuntimas
