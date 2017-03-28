@@ -9,16 +9,6 @@ static const char* tempFilePath = "TempBuff.txt";
 
 char* GenerateUserString(char* word)
 {
-	char* userString = malloc(strlen(word));
-	for(int i=0;i<strlen(word);i++)
-	{
-		*(userString+i) = '_';
-	}
-	*(userString+strlen(word)) = '\0';
-	return userString;
-}
-char* GenerateUserString2(char* word)
-{
 	char* userString = malloc(30);
 	int i=0;
 	while(*(word+i)!='\0'&&*(word+i)!='\r')
@@ -26,6 +16,7 @@ char* GenerateUserString2(char* word)
 		*(userString+i) = '_';
 		i++;
 	}
+	*(userString+i) = '\0';
 	return userString;
 }
 
@@ -53,7 +44,6 @@ char* GetRandomWord()
     fclose(fd);
     //choosing random word
     char *answer = malloc(20);
-    //answer = words[GetRandomNumber(wordCount)];
 	strcpy(answer,words[GetRandomNumber(wordCount)]);
 	*(answer+strlen(answer)-1) = '\0';
     return answer;
@@ -78,16 +68,21 @@ struct hangmanGame{
 	int usedLetterCounter[30];
 }hangman;
 
+struct PlayerStats
+{
+	char* username;
+	char* wins;
+	char* losses;
+}statistics;
+
 void SetupNewUser(int user_id)
 {
 	hangman.lives[user_id] = lives;
 	
 	char* tempWord = GetRandomWord();
 	strcpy(hangman.word[user_id],tempWord);
-	//printf("%s|\n",hangman.word[user_id]);
-	//*(hangman.word[user_id]+strlen(hangman.word[user_id])-1) = '\0';// \n ->> \0
 	puts(hangman.word[user_id]);
-	char* tempUserString = GenerateUserString2(hangman.word[user_id]);
+	char* tempUserString = GenerateUserString(hangman.word[user_id]);
 	strcpy(hangman.userString[user_id],tempUserString);
 	
 	memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
@@ -118,12 +113,6 @@ void SaveUsername(char* buffer, int user_id)
 	free(username);
 	free(usernameLength);
 }
-struct PlayerStats
-{
-	char* username;
-	char* wins;
-	char* losses;
-}statistics;
 
 void DissasembleString(char* line)
 {
@@ -175,8 +164,6 @@ char* AssembleStringBack(char* username, char* wins, char* losses)
     strcat(line,losses);
     strcat(line,"\n");
 
-    //free(wins);
-    //free(losses);
     return line;
 }
 char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wins|losses\n
@@ -214,7 +201,6 @@ void SaveStatistics(char* username, bool gameStatus)
     char* currentFileLine = malloc(maxLineLength);
     fd = fopen(statisticsPath,"r+");
     fb = fopen(tempFilePath,"w+");
-	//fb = tmpfile(); - not working properly
     bool userStatsUpdated = false;
 
     while(fgets(currentFileLine,maxLineLength,fd)!=NULL)
@@ -223,7 +209,6 @@ void SaveStatistics(char* username, bool gameStatus)
         {
             char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
             fprintf(fb,"%s",updatedLine);
-            //free(updatedLine);
             userStatsUpdated = true;
         }
         else
@@ -243,7 +228,6 @@ void SaveStatistics(char* username, bool gameStatus)
             newLine = AssembleStringBack(username,"0","1");
         }
         fprintf(fb,"%s",newLine);
-        //free(newLine);
     }
     //copy file
 
@@ -268,18 +252,15 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
 	if(strlen(gameMove)>1)
 	{
-		puts("S:Too long");
 		return 1;//too long
 	}
 	char ch = *gameMove;
 	if(!isalpha(ch))
 	{
-		puts("S:Not letter");
 		return 2;//not letter
 	}		
 	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) 
 	{
-		puts("S:Used already");
 		return 3;//letter already used
 	}
 	char* tempGuessString = malloc(strlen(hangman.userString[user_id]));
@@ -297,13 +278,6 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		send(socket,gameWonHandle,strlen(gameWonHandle),0);
 		SaveStatistics(hangman.username[user_id],1);
 		SetupNewUser(user_id);
-		/*Reset stuff
-		hangman.lives[user_id] = lives;
-		strcpy(hangman.word[user_id],GetRandomWord());
-		strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
-		memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
-		hangman.usedLetterCounter[user_id] = 0;*/
-		
 		return 0;
 	}
 	
@@ -315,13 +289,6 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 			send(socket,gameLostHandle,strlen(gameLostHandle),0);
 			SaveStatistics(hangman.username[user_id],0);
 			SetupNewUser(user_id);
-			/*Reset stuff
-			hangman.lives[user_id] = lives;
-			strcpy(hangman.word[user_id],GetRandomWord());
-			strcpy(hangman.userString[user_id],GenerateUserString(hangman.word[user_id]));
-			memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
-			hangman.usedLetterCounter[user_id] = 0;*/
-		
 			return 0;
 		}
 		
@@ -337,13 +304,10 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		free(livesMsg);
 	}
 	else send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
-		//puts(hangman.userString[user_id]);
 	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
 	hangman.usedLetterCounter[user_id]++;
 	free(tempGuessString);
 	free(gameMove);
-
-	//puts("S:Success");
 	return 0;
 }
 void SendStatistics(int socket, char* username)
@@ -384,20 +348,20 @@ int main(int argc, char *argv[]){
     int i;
 
     char buffer[BUFFLEN];
-/*
+
     if (argc != 2){
         fprintf(stderr, "USAGE: %s <port>\n", argv[0]);
         return -1;
     }
-*/
 
-    //port = atoi(argv[1]);
-	port = atoi("7896");
-	/*
+
+    port = atoi(argv[1]);
+	//port = atoi("7896");
+	
     if ((port < 1) || (port > 65535)){
         fprintf(stderr, "ERROR #1: invalid port specified.\n");
         return -1;
-    }*/
+    }
 
     if ((l_socket = socket(AF_INET, SOCK_STREAM,0)) < 0){
         fprintf(stderr, "ERROR #2: cannot create listening socket.\n");
@@ -454,7 +418,7 @@ int main(int argc, char *argv[]){
                 if (FD_ISSET(c_sockets[i], &read_set)){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
-					int w_len;
+					//int w_len;
 					
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
@@ -476,31 +440,12 @@ int main(int argc, char *argv[]){
 					{
 						if(strstr(buffer,quitHandle)!=NULL)
 						{
-							//DisconnectUser(c_sockets[i]);
 							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
-							/*segmentation fault(core dumped)
-							hangman.lives[i] = 0;
-							strcpy(hangman.word[i],NULL);
-							strcpy(hangman.userString[i],NULL);
-							strcpy(hangman.username[i],NULL);*/
-							/*
-							hangman.word[i] = NULL;
-							hangman.userString[i] = NULL;
-							hangman.username[i] = NULL;*/
 							close(c_sockets[i]);
 							c_sockets[i] = -1;
 						}
 					}
-					else w_len = send(c_sockets[i], buffer, strlen(buffer),0);
-
-					/*
-					if(w_len<=0)
-					{		
-						DisconnectUser(c_sockets[i]);
-						//close(c_sockets[i]);
-						//c_sockets[i] = -1;
-					}*/
-
+					//else w_len = send(c_sockets[i], buffer, strlen(buffer),0);
                 }
             }
         }

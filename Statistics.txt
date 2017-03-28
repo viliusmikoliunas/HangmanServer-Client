@@ -8,3 +8,6 @@ virsila|0|1
 retro|1|0
 ledinukas|0|1
 pokemonas|2|1
+kols|1|0
+ksals|0|2
+klient|1|0
