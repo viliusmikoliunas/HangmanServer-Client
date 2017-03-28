@@ -186,7 +186,6 @@ int main(int argc, char *argv[]){
 		
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
-			//i = read(0,&sendbuffer,BUFFLEN);
 			fgets(sendbuffer,BUFFLEN,stdin);
 			if(sendbuffer[0]==userQuitChar) //users wants to quit
 			{
@@ -206,14 +205,12 @@ int main(int argc, char *argv[]){
 				if(sendbuffer[0]==userStartChar)//user wants to play
 				{
 					gameUnderway = true;
-					//write(s_socket, playHandle,strlen(playHandle));
 				}
 				else if (sendbuffer[0] == userStatsChar)//user wants statistics
 				{
 					write(s_socket, statHandle,strlen(statHandle));
 				}
 			}		
-            //else write(s_socket, sendbuffer,i);//!!! i
         }
     }
 	puts("You have been disconnected");

@@ -81,14 +81,15 @@ void SetupNewUser(int user_id)
 	
 	char* tempWord = GetRandomWord();
 	strcpy(hangman.word[user_id],tempWord);
-	puts(hangman.word[user_id]);
+	//puts(hangman.word[user_id]);
 	char* tempUserString = GenerateUserString(hangman.word[user_id]);
+	strcpy(hangman.userString[user_id],tempUserString);
 	strcpy(hangman.userString[user_id],tempUserString);
 	
 	memset(hangman.usedLetters[user_id],0,sizeof(hangman.usedLetters[user_id]));
 	hangman.usedLetterCounter[user_id]=0;
 	
-	puts(hangman.userString[user_id]);
+	//puts(hangman.userString[user_id]);
 }
 
 void SaveUsername(char* buffer, int user_id)
@@ -239,14 +240,14 @@ void SaveStatistics(char* username, bool gameStatus)
     {
         fputc(c,fd);
     }
-	
     free(currentFileLine);
     fclose(fb);
     fclose(fd);
 }
+
 int ProcessGameMove(char* buffer, int socket, int user_id)
 {
-	printf("Priimta:%s|\n",buffer);
+	//printf("Priimta:%s|\n",buffer);
 	char* gameMove = malloc(10);
 	if(strstr(buffer,"\n")!=NULL) *(buffer+strlen(buffer)-1) = '\0';
 	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
@@ -298,7 +299,7 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		sprintf(livesLeft,"%d",hangman.lives[user_id]);
 		strcat(livesMsg,livesLeft);
 		send(socket,livesMsg,strlen(livesMsg),0);
-		puts(livesMsg);
+		//puts(livesMsg);
 		
 		free(livesLeft);
 		free(livesMsg);
@@ -423,7 +424,7 @@ int main(int argc, char *argv[]){
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
-						printf("%s\n",hangman.username[i]);
+						//printf("%s\n",hangman.username[i]);
 					}
 					
 					else if (strstr(buffer,gameMoveHandle)!=NULL)
@@ -445,7 +446,6 @@ int main(int argc, char *argv[]){
 							c_sockets[i] = -1;
 						}
 					}
-					//else w_len = send(c_sockets[i], buffer, strlen(buffer),0);
                 }
             }
         }

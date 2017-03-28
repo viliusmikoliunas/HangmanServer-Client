@@ -11,3 +11,6 @@ pokemonas|2|1
 kols|1|0
 ksals|0|2
 klient|1|0
+userwos|1|0
+jonas|0|1
+viskas ok|1|0
