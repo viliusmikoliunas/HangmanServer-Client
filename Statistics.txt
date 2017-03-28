@@ -1,0 +1,10 @@
+super user|5|6
+test subject|1|10
+
+miniature|1|0
+
+naujas|1|0
+virsila|0|1
+retro|1|0
+ledinukas|0|1
+pokemonas|2|1
