@@ -158,12 +158,13 @@ void DissasembleString(char* line)
 char* AssembleStringBack(char* username, char* wins, char* losses)
 {
     char* line = malloc(50);
+	//strcpy(line,"\n");
     strcpy(line,username);
     strcat(line,"|");
     strcat(line,wins);
     strcat(line,"|");
     strcat(line,losses);
-    strcat(line,"\n");
+    strcat(line,"\0\n");
 
     return line;
 }
@@ -209,7 +210,7 @@ void SaveStatistics(char* username, bool gameStatus)
         if(strstr(currentFileLine,username)!=NULL)
         {
             char* updatedLine = UpdateStatistics(currentFileLine,username,gameStatus);
-            fprintf(fb,"%s",updatedLine);
+            fprintf(fb,"%s\r\n",updatedLine);
             userStatsUpdated = true;
         }
         else
@@ -311,6 +312,7 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 	free(gameMove);
 	return 0;
 }
+
 void SendStatistics(int socket, char* username)
 {
 	char* messageToSend = malloc(50);
@@ -319,9 +321,10 @@ void SendStatistics(int socket, char* username)
 	FILE *fd;
 	fd=fopen(statisticsPath,"r");
 	char* currentLine = malloc(50);
-	while(fgets(currentLine,50,fd))
+	bool wereStatisticsSent = false;
+	while(fgets(currentLine,50,fd) && !wereStatisticsSent)
 	{
-		if(strstr(currentLine,username)!=NULL)
+		if(strstr(currentLine,username)!=NULL) //needs fixing
 		{
 			DissasembleString(currentLine);
 			strcat(messageToSend,statistics.wins);
@@ -329,12 +332,53 @@ void SendStatistics(int socket, char* username)
 			strcat(messageToSend,statistics.losses);
 			strcat(messageToSend,"\0");
 			send(socket,messageToSend,strlen(messageToSend),0);
+			wereStatisticsSent = true;
 		}
+	}
+	
+	if(!wereStatisticsSent)
+	{
+		strcat(messageToSend,"0\0");
+		send(socket,messageToSend,strlen(messageToSend),0);
 	}
 	free(currentLine);
 	free(messageToSend);
 	fclose(fd);
 }
+/*useless
+void SendSpecificUserStats(char* buffer, int socket)//E:username  prob useless
+{
+	char* msgToSend = malloc(50);
+	strcpy(msgToSend,specificUserStatsHandle);
+	char* username = malloc(40);
+	strcpy(username,buffer);
+	memmove(username,username+2,strlen(username)-2);
+	
+	FILE *fd;
+    int maxLineLength = 40;
+    char* currentFileLine = malloc(maxLineLength);
+    fd = fopen(statisticsPath,"r+");
+	bool wasSent = false;
+    while(fgets(currentFileLine,maxLineLength,fd)!=NULL)
+    {
+        if(strstr(currentFileLine,username)!=NULL)
+        {
+            strcat(msgToSend,currentFileLine);
+            strcat(msgToSend,"\0");
+			send(socket,msgToSend,strlen(msgToSend),0);
+			wasSent = true;
+        }
+    }
+	if(!wasSent)
+	{
+		strcat(msgToSend,"0\0");
+		send(socket,msgToSend,strlen(msgToSend),0);
+	}
+	printf("Siuntinys:%s\n",msgToSend);
+	free(currentFileLine);
+	free(username);
+	free(msgToSend);
+}*/
 int main(int argc, char *argv[]){
     unsigned int port;
     unsigned int clientaddrlen;
@@ -349,15 +393,15 @@ int main(int argc, char *argv[]){
     int i;
 
     char buffer[BUFFLEN];
-
+/*
     if (argc != 2){
         fprintf(stderr, "USAGE: %s <port>\n", argv[0]);
         return -1;
-    }
+    }*/
 
 
-    port = atoi(argv[1]);
-	//port = atoi("7896");
+    //port = atoi(argv[1]);
+	port = atoi("7896");
 	
     if ((port < 1) || (port > 65535)){
         fprintf(stderr, "ERROR #1: invalid port specified.\n");
@@ -420,11 +464,16 @@ int main(int argc, char *argv[]){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
 					//int w_len;
-					
+					printf("Priimta zinute:%s\n",buffer);
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
 						//printf("%s\n",hangman.username[i]);
+					}
+					else if (strstr(buffer,specificUserStatsHandle)!=NULL)//
+					{
+						SendStatistics(c_sockets[i],buffer+2);
+						//SendSpecificUserStats(buffer,c_sockets[i]);
 					}
 					
 					else if (strstr(buffer,gameMoveHandle)!=NULL)
