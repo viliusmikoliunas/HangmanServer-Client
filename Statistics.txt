@@ -1,16 +1,36 @@
-super user|5|6
+super user|5|7
 test subject|1|10
-
-miniature|1|0
-
+miniature|1|1
 naujas|1|0
 virsila|0|1
-retro|1|0
+
+
+
+
+retro|2|1
+
 ledinukas|0|1
-pokemonas|2|1
+pokemonas|3|2
+
 kols|1|0
 ksals|0|2
+
 klient|1|0
+
 userwos|1|0
 jonas|0|1
+
 viskas ok|1|0
+
+
+
+
+useris|1|0
+
+naujokas|1|1
+
+klientas|0|2
+klientcool|1|0
+
+
+pokestop|0|1
