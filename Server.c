@@ -190,12 +190,7 @@ char* UpdateStatistics(char* line, char* username, bool gameStatus)//username|wi
     return AssembleStringBack(username,statistics.wins,statistics.losses);
 
 }
-char* CreateNewLine(char* username, char* gameStatus)
-{
-    char* newLine = malloc(50);
-    strcpy(newLine,username);
 
-}
 void SaveStatistics(char* username, bool gameStatus)
 {
     FILE *fd,*fb;
@@ -229,7 +224,7 @@ void SaveStatistics(char* username, bool gameStatus)
         {
             newLine = AssembleStringBack(username,"0","1");
         }
-        fprintf(fb,"%s",newLine);
+        fprintf(fb,"%s\r\n",newLine);
     }
     //copy file
 
@@ -248,7 +243,6 @@ void SaveStatistics(char* username, bool gameStatus)
 
 int ProcessGameMove(char* buffer, int socket, int user_id)
 {
-	//printf("Priimta:%s|\n",buffer);
 	char* gameMove = malloc(10);
 	if(strstr(buffer,"\n")!=NULL) *(buffer+strlen(buffer)-1) = '\0';
 	strcpy(gameMove,buffer+strlen(gameMoveHandle));//removes gameHandle
@@ -305,7 +299,14 @@ int ProcessGameMove(char* buffer, int socket, int user_id)
 		free(livesLeft);
 		free(livesMsg);
 	}
-	else send(socket,hangman.userString[user_id],strlen(hangman.userString[user_id]),0);
+	else 
+	{
+		char* messageToSend = malloc(50);
+		strcpy(messageToSend,userStringHandle);
+		strcat(messageToSend,hangman.userString[user_id]);
+		send(socket,messageToSend,strlen(messageToSend),0);
+		free(messageToSend);
+	}
 	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
 	hangman.usedLetterCounter[user_id]++;
 	free(tempGuessString);
@@ -403,12 +404,14 @@ int main(int argc, char *argv[]){
     //port = atoi(argv[1]);
 	port = atoi("7896");
 	
-    if ((port < 1) || (port > 65535)){
+    if ((port < 1) || (port > 65535))
+	{
         fprintf(stderr, "ERROR #1: invalid port specified.\n");
         return -1;
     }
 
-    if ((l_socket = socket(AF_INET, SOCK_STREAM,0)) < 0){
+    if ((l_socket = socket(AF_INET, SOCK_STREAM,0)) < 0)
+	{
         fprintf(stderr, "ERROR #2: cannot create listening socket.\n");
         return -1;
     }
@@ -418,25 +421,31 @@ int main(int argc, char *argv[]){
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
     servaddr.sin_port = htons(port);
 
-    if (bind (l_socket, (struct sockaddr *)&servaddr,sizeof(servaddr))<0){
+    if (bind (l_socket, (struct sockaddr *)&servaddr,sizeof(servaddr))<0)
+	{
         fprintf(stderr,"ERROR #3: bind listening socket.\n");
         return -1;
     }
 
-    if (listen(l_socket, 5) <0){
+    if (listen(l_socket, 5) <0)
+	{
         fprintf(stderr,"ERROR #4: error in listen().\n");
         return -1;
     }                           
 
-    for (i = 0; i < MAXCLIENTS; i++){
+    for (i = 0; i < MAXCLIENTS; i++)
+	{
         c_sockets[i] = -1;
     }
 
 
-    while(1){
+    while(1)
+	{
         FD_ZERO(&read_set);
-        for (i = 0; i < MAXCLIENTS; i++){
-            if (c_sockets[i] != -1){
+        for (i = 0; i < MAXCLIENTS; i++)
+		{
+            if (c_sockets[i] != -1)
+			{
                 FD_SET(c_sockets[i], &read_set);
 				maxfd = (c_sockets[i] > maxfd) ? c_sockets[i] : maxfd;
             }
@@ -447,9 +456,11 @@ int main(int argc, char *argv[]){
         
         select(maxfd+1, &read_set, NULL , NULL, NULL);
 
-        if (FD_ISSET(l_socket, &read_set)){
+        if (FD_ISSET(l_socket, &read_set))
+		{
             int client_id = findemptyuser(c_sockets);
-            if (client_id != -1){
+            if (client_id != -1)
+			{
                 clientaddrlen = sizeof(clientaddr);
                 memset(&clientaddr, 0, clientaddrlen);
                 c_sockets[client_id] = accept(l_socket, 
@@ -458,13 +469,16 @@ int main(int argc, char *argv[]){
                 printf("Connected: %s\n",inet_ntoa(clientaddr.sin_addr));
             }
         }
-        for (i = 0; i < MAXCLIENTS; i++){
-            if (c_sockets[i] != -1){
-                if (FD_ISSET(c_sockets[i], &read_set)){
+        for (i = 0; i < MAXCLIENTS; i++)
+		{
+            if (c_sockets[i] != -1)
+			{
+                if (FD_ISSET(c_sockets[i], &read_set))
+				{
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
 					//int w_len;
-					printf("Priimta zinute:%s\n",buffer);
+					printf("User \"%s\" sends:%s\n",hangman.username[i],buffer);
 					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
