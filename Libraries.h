@@ -18,6 +18,7 @@ static char* livesHandle = "L:";
 static char* statisticsHandle = "S:";
 static char* specificUserStatsHandle = "E:";
 static char* fullStatisticsHandle = "A:";
+static char* userStringHandle = "R:";
 
 static char* gameWonHandle = "/W";
 static char* gameLostHandle = "/L";

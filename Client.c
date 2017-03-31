@@ -30,6 +30,7 @@ void SendUsername(int socket, char* username)
 }
 void PrintMenu()
 {	
+	puts("");
 	printf("%c.Quit\n",userQuitChar);
 	printf("%c.Start\n",userStartChar);
 	printf("%c.Personal Stats\n",userStatsChar);
@@ -185,6 +186,14 @@ int main(int argc, char *argv[]){
 				puts("You have lost :(");
 				PrintMenu();
 				gameUnderway = false;
+			}
+			else if (strstr(recvbuffer,livesHandle)!=NULL)
+			{
+				printf("Lives left:%s\n",recvbuffer+strlen(livesHandle));
+			}
+			else if (strstr(recvbuffer,userStringHandle)!=NULL)
+			{
+				printf("%s\n",recvbuffer+strlen(userStringHandle));
 			}
 			//else printf("%s\n",recvbuffer);
         }
