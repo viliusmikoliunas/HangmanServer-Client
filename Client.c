@@ -151,6 +151,7 @@ int main(int argc, char *argv[]){
 	
 	static bool usernameSent = false;
 	static bool gameUnderway = false;
+	
     while (1)
 	{
         FD_ZERO(&read_set);
@@ -185,14 +186,14 @@ int main(int argc, char *argv[]){
 				PrintMenu();
 				gameUnderway = false;
 			}
-			else printf("%s\n",recvbuffer);
+			//else printf("%s\n",recvbuffer);
         }
 		
 		else if(FD_ISSET(0,&read_set)&&!usernameSent)
-			{
-				SendUsername(s_socket,username);
-				usernameSent = true;
-			}
+		{
+			SendUsername(s_socket,username);
+			usernameSent = true;
+		}
 			
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
@@ -223,9 +224,11 @@ int main(int argc, char *argv[]){
 				}
 				else if (sendbuffer[0] == specificUserStatsChar)
 				{
+					//temporary measures
 					char* tempUsername = "E:pokemonas";
+					printf("Statistics of %s:\n","\"pokemonas\"");
 					write(s_socket,tempUsername,strlen(tempUsername));
-					/*
+					/*needs fixing
 					char* otherUsername = malloc(20);
 					printf("User name of the player:\n");
 					while ( getchar() != '\n');
@@ -238,6 +241,10 @@ int main(int argc, char *argv[]){
 					free(otherUsername);
 					free(msgToSend);
 					*/
+				}
+				else if (sendbuffer[0] == allUserStatsChar)
+				{
+					write(s_socket,allUserStatHandle,strlen(allUserStatHandle));
 				}
 			}		
 		}
