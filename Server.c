@@ -346,6 +346,35 @@ void SendStatistics(int socket, char* username)
 	free(messageToSend);
 	fclose(fd);
 }
+int SendAllStatistics(int socket)
+{
+	FILE *fd;
+	fd = fopen(statisticsPath,"r");
+	char* allStatistics = malloc(BUFFLEN);
+	char* oneLine = malloc(50);
+	if(fgets(oneLine,50,fd)!=NULL)
+	{
+		puts(oneLine);
+		strcpy(allStatistics,oneLine);
+	}
+	else 
+	{
+		fclose(fd);
+		free(oneLine);
+		free(allStatistics);
+		return 1;
+	}
+	while(fgets(oneLine,50,fd)!=NULL)
+	{
+		strcat(allStatistics,oneLine);
+	}
+	send(socket,allStatistics,strlen(allStatistics),0);
+	
+	fclose(fd);
+	free(oneLine);
+	free(allStatistics);
+	return 0;
+}
 /*useless
 void SendSpecificUserStats(char* buffer, int socket)//E:username  prob useless
 {
@@ -484,7 +513,7 @@ int main(int argc, char *argv[]){
 						SaveUsername(buffer,i);
 						//printf("%s\n",hangman.username[i]);
 					}
-					else if (strstr(buffer,specificUserStatsHandle)!=NULL)//
+					else if (strstr(buffer,specificUserStatsHandle)!=NULL)//send spec stats
 					{
 						SendStatistics(c_sockets[i],buffer+2);
 						//SendSpecificUserStats(buffer,c_sockets[i]);
@@ -495,9 +524,17 @@ int main(int argc, char *argv[]){
 						ProcessGameMove(buffer,c_sockets[i],i);
 					}
 					
-					else if (strstr(buffer,statHandle)!=NULL)
+					else if (strstr(buffer,statHandle)!=NULL)//send user stats
 					{
 						SendStatistics(c_sockets[i],hangman.username[i]);
+					}
+					
+					else if(strstr(buffer,allUserStatHandle)!=NULL)//all stats
+					{
+						puts("Pagavau");
+						int err = SendAllStatistics(c_sockets[i]);
+						if(err==0) puts("Paejo");
+						else if (err==1)  puts("Nope");
 					}
 					
 					else if (buffer[0]=='/')//menu sequences
