@@ -8,10 +8,9 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdbool.h>
-#include <errno.h>
 
 #define BUFFLEN 1024
-#define maxUsernameLength 20
+#define maxUsernameLength 30
 
 static char* usernameHandle = "U:";
 static char* gameMoveHandle = "M:";
@@ -23,7 +22,6 @@ static char* userStringHandle = "R:";
 
 static char* gameWonHandle = "/W";
 static char* gameLostHandle = "/L";
-
 static char* quitHandle = "/Q";
 static char* statHandle = "/S";
 static char* disconnectHandle = "/D";
