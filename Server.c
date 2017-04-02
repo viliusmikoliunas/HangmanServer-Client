@@ -1,5 +1,4 @@
 #include "Libraries.h"
-
 #define MAXCLIENTS 10
 #define maxWordLength 20
 static const int lives = 5;
@@ -325,8 +324,12 @@ void SendStatistics(int socket, char* username)
 	bool wereStatisticsSent = false;
 	while(fgets(currentLine,50,fd) && !wereStatisticsSent)
 	{
-		if(strstr(currentLine,username)!=NULL) //needs fixing
+		char* usernameFromCurrentLine = currentLine;
+		char* temp = strchr(usernameFromCurrentLine,'|');
+		*temp = '\0';
+		if(strcmp(usernameFromCurrentLine,username)==0)
 		{
+			*temp = '|';
 			DissasembleString(currentLine);
 			strcat(messageToSend,statistics.wins);
 			strcat(messageToSend,"|");
@@ -351,32 +354,30 @@ int SendAllStatistics(int socket)
 	FILE *fd;
 	fd = fopen(statisticsPath,"r");
 	char* allStatistics = malloc(BUFFLEN);
+	strcpy(allStatistics,allStatisticsHandle);
 	char* oneLine = malloc(50);
-	if(fgets(oneLine,50,fd)!=NULL)
-	{
-		puts(oneLine);
-		strcpy(allStatistics,oneLine);
-	}
-	else 
-	{
-		fclose(fd);
-		free(oneLine);
-		free(allStatistics);
-		return 1;
-	}
-	while(fgets(oneLine,50,fd)!=NULL)
+	
+	while(fgets(oneLine,50,fd))
 	{
 		strcat(allStatistics,oneLine);
 	}
-	send(socket,allStatistics,strlen(allStatistics),0);
-	
 	fclose(fd);
 	free(oneLine);
+	
+	if(strlen(allStatistics)==strlen(allStatisticsHandle))
+	{
+		strcat(allStatistics,"0\0");
+	}
+	else
+	{
+		//strcat(allStatistics,endOfAllStatisticsChar);
+		strcat(allStatistics,"\0");
+	}
+	send(socket,allStatistics,strlen(allStatistics),0);
 	free(allStatistics);
 	return 0;
 }
-/*useless
-void SendSpecificUserStats(char* buffer, int socket)//E:username  prob useless
+/*void SendSpecificUserStats(char* buffer, int socket)//E:username  prob useless
 {
 	char* msgToSend = malloc(50);
 	strcpy(msgToSend,specificUserStatsHandle);
@@ -507,8 +508,15 @@ int main(int argc, char *argv[]){
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
 					//int w_len;
-					printf("User \"%s\" sends:%s\n",hangman.username[i],buffer);
-					if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
+					printf("User \"%s\" sends:|%s|\n",hangman.username[i],buffer);
+					if(r_len<0)
+					{
+						send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
+						close(c_sockets[i]);
+						c_sockets[i] = -1;
+						printf("%d\n",errno);
+					}
+					else if(strstr(buffer,usernameHandle)!=NULL)//if username save username to array
 					{
 						SaveUsername(buffer,i);
 						//printf("%s\n",hangman.username[i]);
@@ -531,10 +539,7 @@ int main(int argc, char *argv[]){
 					
 					else if(strstr(buffer,allUserStatHandle)!=NULL)//all stats
 					{
-						puts("Pagavau");
 						int err = SendAllStatistics(c_sockets[i]);
-						if(err==0) puts("Paejo");
-						else if (err==1)  puts("Nope");
 					}
 					
 					else if (buffer[0]=='/')//menu sequences
