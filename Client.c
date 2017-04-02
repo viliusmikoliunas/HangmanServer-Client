@@ -30,6 +30,7 @@ void SendUsername(int socket, char* username)
 }
 void PrintMenu()
 {	
+	puts("");
 	printf("%c.Quit\n",userQuitChar);
 	printf("%c.Start\n",userStartChar);
 	printf("%c.Personal Stats\n",userStatsChar);
@@ -94,6 +95,51 @@ void DisplayStats(char* buffer)
 	free(losses);
 	free(wins);
 }
+struct user
+{
+	char* username;
+	char* wins;
+	char* losses;
+}userStatistics;
+void Alternative()
+{
+	for(int i=0;i<10;i++)
+	{
+		printf("%d skaicius\n",i);
+	}
+}
+void PrintOneUserStatistics(char* line)
+{
+	char* currentElement = line;
+	char* nextElement = strchr(currentElement,'|');
+	*nextElement = '\0';
+	printf("U:%s\n",currentElement);
+	currentElement = nextElement+1;
+	
+	nextElement = strchr(currentElement,'|');
+	*nextElement = '\0';
+	printf("W:%s ",currentElement);
+	currentElement = nextElement+1;
+	
+	nextElement = strchr(currentElement,'\0');
+	*nextElement = '\0';
+	printf("L:%s\n\n",currentElement);
+}
+void PrintAllStatistics(char* lines)
+{
+	lines+=strlen(allStatisticsHandle);
+	char* currentLine = lines;
+	
+	while(currentLine)
+	{
+		char *nextLine = strchr(currentLine,'\n');
+		if(nextLine) *nextLine = '\0';
+		if(strlen(currentLine)<=1) break;//reached the end
+		PrintOneUserStatistics(currentLine);
+		if(nextLine) *nextLine = '\n';
+		currentLine = nextLine ? (nextLine+1) : NULL;
+	}
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
@@ -151,6 +197,8 @@ int main(int argc, char *argv[]){
 	
 	static bool usernameSent = false;
 	static bool gameUnderway = false;
+	static bool requestedForSpecificStats = false;
+	
     while (1)
 	{
         FD_ZERO(&read_set);
@@ -185,61 +233,89 @@ int main(int argc, char *argv[]){
 				PrintMenu();
 				gameUnderway = false;
 			}
-			else printf("%s\n",recvbuffer);
+			else if (strstr(recvbuffer,livesHandle)!=NULL)
+			{
+				printf("Lives left:%s\n",recvbuffer+strlen(livesHandle));
+			}
+			else if (strstr(recvbuffer,userStringHandle)!=NULL)
+			{
+				printf("%s\n",recvbuffer+strlen(userStringHandle));
+			}
+			
+			else if (strstr(recvbuffer,allStatisticsHandle)!=NULL)
+			{
+				if(*(recvbuffer+strlen(allStatisticsHandle))=='0')
+				{
+					puts("No statistics avaivable");
+				}
+				else
+				{
+					PrintAllStatistics(recvbuffer);
+				}
+			}
         }
 		
 		else if(FD_ISSET(0,&read_set)&&!usernameSent)
-			{
-				SendUsername(s_socket,username);
-				usernameSent = true;
-			}
+		{
+			SendUsername(s_socket,username);
+			usernameSent = true;
+		}
 			
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
-			fgets(sendbuffer,BUFFLEN,stdin);
-			
-			if(sendbuffer[0]==userQuitChar) //users wants to quit
+			if(requestedForSpecificStats)
 			{
-				write(s_socket, quitHandle,strlen(quitHandle));
+				char* msgToSend = malloc(50);
+				char* username = malloc(40);
+				strcpy(msgToSend,specificUserStatsHandle);
+				fgets(username,40,stdin);
+				strcat(msgToSend,username);
+				char* p = strchr(msgToSend,'\n');
+				*p = '\0';
+				write(s_socket, msgToSend,strlen(msgToSend));
+				free(username);
+				free(msgToSend);
+				requestedForSpecificStats = false;
 			}
-			
-			if(gameUnderway)
+			else
 			{
-				int err = SendGameMove2(s_socket,sendbuffer);
-				//if (err==0) puts("Great success");
-				//else if(err==1) puts("Too long");
-				//else if (err==2) puts("Not letter");
-			}
+				fgets(sendbuffer,BUFFLEN,stdin);
+			
+				if(sendbuffer[0]==userQuitChar) //users wants to quit
+				{
+					write(s_socket, quitHandle,strlen(quitHandle));
+				}
+				
+				if(gameUnderway)
+				{
+					int err = SendGameMove2(s_socket,sendbuffer);
+					//if (err==0) puts("Great success");
+					//else if(err==1) puts("Too long");
+					//else if (err==2) puts("Not letter");
+				}
 
-			if(!gameUnderway)
-			{
-				if(sendbuffer[0]==userStartChar)//user wants to play
+				if(!gameUnderway)
 				{
-					gameUnderway = true;
+					if(sendbuffer[0]==userStartChar)//user wants to play
+					{
+						gameUnderway = true;
+					}
+					else if (sendbuffer[0] == userStatsChar)//user wants personal statistics
+					{
+						write(s_socket, statHandle,strlen(statHandle));
+					}
+					else if (sendbuffer[0] == specificUserStatsChar)
+					{
+						requestedForSpecificStats = true;
+						puts("Enter username:");
+					}
+					else if (sendbuffer[0] == allUserStatsChar)
+					{
+						write(s_socket,allUserStatHandle,strlen(allUserStatHandle));
+					}
 				}
-				else if (sendbuffer[0] == userStatsChar)//user wants personal statistics
-				{
-					write(s_socket, statHandle,strlen(statHandle));
-				}
-				else if (sendbuffer[0] == specificUserStatsChar)
-				{
-					char* tempUsername = "E:pokemonas";
-					write(s_socket,tempUsername,strlen(tempUsername));
-					/*
-					char* otherUsername = malloc(20);
-					printf("User name of the player:\n");
-					while ( getchar() != '\n');
-					fgets(otherUsername,20,stdin);
-					char* msgToSend = malloc(40);
-					strcpy(msgToSend,specificUserStatsHandle);
-					strcat(msgToSend,otherUsername);
-					strcat(msgToSend,"\0");
-					write(s_socket,msgToSend,strlen(msgToSend));
-					free(otherUsername);
-					free(msgToSend);
-					*/
-				}
-			}		
+			}
+		
 		}
     }
 	puts("You have been disconnected");
