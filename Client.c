@@ -9,25 +9,15 @@ static char specificUserStatsChar = '3';
 static char allUserStatsChar = '4';
 
 void SendUsername(int socket, char* username)
-{	//format:
-	//U:|strlen(username)|username
+{
 	char *p = strchr(username,'\n');
 	*p = '\0';//remove \n symbol from the back
 	
-	char* msgToSend = malloc(50);
+	char* msgToSend = malloc(maxUsernameLength+15);
 	strcpy(msgToSend,usernameHandle);
-	strcat(msgToSend,"|");
-	
-	char* usernameLength = malloc(2);
-	sprintf(usernameLength,"%d",strlen(username));
-	strcat(msgToSend,usernameLength);
-	strcat(msgToSend,"|");
-	
 	strcat(msgToSend,username);
 	strcat(msgToSend,"\0");
 	write(socket,msgToSend,strlen(msgToSend));
-	
-	free(usernameLength);
 	free(msgToSend);
 }
 void PrintMenu()
@@ -123,7 +113,7 @@ int main(int argc, char *argv[]){
     //port = atoi(argv[2]);
 	port = atoi("7896");
 	
-    if ((port < 1) || (port > 65535)){
+    if ((port < 1024) || (port > 65535)){
         printf("ERROR #1: invalid port specified.\n");
         exit(1);
     }
