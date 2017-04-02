@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #define BUFFLEN 1024
 #define maxUsernameLength 20
@@ -17,14 +18,13 @@ static char* gameMoveHandle = "M:";
 static char* livesHandle = "L:";
 static char* statisticsHandle = "S:";
 static char* specificUserStatsHandle = "E:";
-static char* fullStatisticsHandle = "A:";
+static char* allStatisticsHandle = "A:";
 static char* userStringHandle = "R:";
 
 static char* gameWonHandle = "/W";
 static char* gameLostHandle = "/L";
 
 static char* quitHandle = "/Q";
-//static char* playHandle = "/P";//prob useless
 static char* statHandle = "/S";
 static char* disconnectHandle = "/D";
 static char* allUserStatHandle = "/A";

@@ -197,6 +197,7 @@ int main(int argc, char *argv[]){
 	
 	static bool usernameSent = false;
 	static bool gameUnderway = false;
+	static bool requestedForSpecificStats = false;
 	
     while (1)
 	{
@@ -262,56 +263,59 @@ int main(int argc, char *argv[]){
 			
         else if (FD_ISSET(0,&read_set))//siuntimas
 		{
-			fgets(sendbuffer,BUFFLEN,stdin);
-			
-			if(sendbuffer[0]==userQuitChar) //users wants to quit
+			if(requestedForSpecificStats)
 			{
-				write(s_socket, quitHandle,strlen(quitHandle));
+				char* msgToSend = malloc(50);
+				char* username = malloc(40);
+				strcpy(msgToSend,specificUserStatsHandle);
+				fgets(username,40,stdin);
+				strcat(msgToSend,username);
+				char* p = strchr(msgToSend,'\n');
+				*p = '\0';
+				write(s_socket, msgToSend,strlen(msgToSend));
+				free(username);
+				free(msgToSend);
+				requestedForSpecificStats = false;
 			}
-			
-			if(gameUnderway)
+			else
 			{
-				int err = SendGameMove2(s_socket,sendbuffer);
-				//if (err==0) puts("Great success");
-				//else if(err==1) puts("Too long");
-				//else if (err==2) puts("Not letter");
-			}
+				fgets(sendbuffer,BUFFLEN,stdin);
+			
+				if(sendbuffer[0]==userQuitChar) //users wants to quit
+				{
+					write(s_socket, quitHandle,strlen(quitHandle));
+				}
+				
+				if(gameUnderway)
+				{
+					int err = SendGameMove2(s_socket,sendbuffer);
+					//if (err==0) puts("Great success");
+					//else if(err==1) puts("Too long");
+					//else if (err==2) puts("Not letter");
+				}
 
-			if(!gameUnderway)
-			{
-				if(sendbuffer[0]==userStartChar)//user wants to play
+				if(!gameUnderway)
 				{
-					gameUnderway = true;
+					if(sendbuffer[0]==userStartChar)//user wants to play
+					{
+						gameUnderway = true;
+					}
+					else if (sendbuffer[0] == userStatsChar)//user wants personal statistics
+					{
+						write(s_socket, statHandle,strlen(statHandle));
+					}
+					else if (sendbuffer[0] == specificUserStatsChar)
+					{
+						requestedForSpecificStats = true;
+						puts("Enter username:");
+					}
+					else if (sendbuffer[0] == allUserStatsChar)
+					{
+						write(s_socket,allUserStatHandle,strlen(allUserStatHandle));
+					}
 				}
-				else if (sendbuffer[0] == userStatsChar)//user wants personal statistics
-				{
-					write(s_socket, statHandle,strlen(statHandle));
-				}
-				else if (sendbuffer[0] == specificUserStatsChar)
-				{
-					//temporary measures
-					char* tempUsername = "E:pokemonas";
-					printf("Statistics of %s:\n","\"pokemonas\"");
-					write(s_socket,tempUsername,strlen(tempUsername));
-					/*needs fixing
-					char* otherUsername = malloc(20);
-					printf("User name of the player:\n");
-					while ( getchar() != '\n');
-					fgets(otherUsername,20,stdin);
-					char* msgToSend = malloc(40);
-					strcpy(msgToSend,specificUserStatsHandle);
-					strcat(msgToSend,otherUsername);
-					strcat(msgToSend,"\0");
-					write(s_socket,msgToSend,strlen(msgToSend));
-					free(otherUsername);
-					free(msgToSend);
-					*/
-				}
-				else if (sendbuffer[0] == allUserStatsChar)
-				{
-					write(s_socket,allUserStatHandle,strlen(allUserStatHandle));
-				}
-			}		
+			}
+		
 		}
     }
 	puts("You have been disconnected");
