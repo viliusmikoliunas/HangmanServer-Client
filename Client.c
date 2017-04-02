@@ -95,6 +95,51 @@ void DisplayStats(char* buffer)
 	free(losses);
 	free(wins);
 }
+struct user
+{
+	char* username;
+	char* wins;
+	char* losses;
+}userStatistics;
+void Alternative()
+{
+	for(int i=0;i<10;i++)
+	{
+		printf("%d skaicius\n",i);
+	}
+}
+void PrintOneUserStatistics(char* line)
+{
+	char* currentElement = line;
+	char* nextElement = strchr(currentElement,'|');
+	*nextElement = '\0';
+	printf("U:%s\n",currentElement);
+	currentElement = nextElement+1;
+	
+	nextElement = strchr(currentElement,'|');
+	*nextElement = '\0';
+	printf("W:%s ",currentElement);
+	currentElement = nextElement+1;
+	
+	nextElement = strchr(currentElement,'\0');
+	*nextElement = '\0';
+	printf("L:%s\n\n",currentElement);
+}
+void PrintAllStatistics(char* lines)
+{
+	lines+=strlen(allStatisticsHandle);
+	char* currentLine = lines;
+	
+	while(currentLine)
+	{
+		char *nextLine = strchr(currentLine,'\n');
+		if(nextLine) *nextLine = '\0';
+		if(strlen(currentLine)<=1) break;//reached the end
+		PrintOneUserStatistics(currentLine);
+		if(nextLine) *nextLine = '\n';
+		currentLine = nextLine ? (nextLine+1) : NULL;
+	}
+}
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
@@ -195,7 +240,18 @@ int main(int argc, char *argv[]){
 			{
 				printf("%s\n",recvbuffer+strlen(userStringHandle));
 			}
-			//else printf("%s\n",recvbuffer);
+			
+			else if (strstr(recvbuffer,allStatisticsHandle)!=NULL)
+			{
+				if(*(recvbuffer+strlen(allStatisticsHandle))=='0')
+				{
+					puts("No statistics avaivable");
+				}
+				else
+				{
+					PrintAllStatistics(recvbuffer);
+				}
+			}
         }
 		
 		else if(FD_ISSET(0,&read_set)&&!usernameSent)
