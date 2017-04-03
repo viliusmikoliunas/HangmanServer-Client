@@ -110,7 +110,7 @@ void SplitFileLine(char* line)
 	nextWord = strchr(currentWord,'|');
 	*nextWord = '\0';
 	char* wins = malloc(5);
-    strcpy(wins,currentWord);
+	strcpy(wins,currentWord);
 	statistics.wins = wins;
 
 	currentWord = nextWord+1;
@@ -214,7 +214,26 @@ void SaveStatistics(char* username, bool gameStatus)
 	fclose(fb);
 	fclose(fd);
 }
+void SendLivesLeftMsg(int socket, int user_id)
+{
+	char* livesMsg = malloc(10);
+	char* livesLeft = malloc(5);
+	strcpy(livesMsg,livesHandle);
+	sprintf(livesLeft,"%d",hangman.lives[user_id]);
+	strcat(livesMsg,livesLeft);
+	send(socket,livesMsg,strlen(livesMsg),0);
 
+	free(livesLeft);
+	free(livesMsg);
+}
+void SendUserString(int socket, int user_id)
+{
+	char* messageToSend = malloc(maxWordLength);
+	strcpy(messageToSend,userStringHandle);
+	strcat(messageToSend,hangman.userString[user_id]);
+	send(socket,messageToSend,strlen(messageToSend),0);
+	free(messageToSend);
+}
 int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 {
 	char* gameMove = malloc(10);
@@ -230,9 +249,8 @@ int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 	if(!isalpha(ch)) return 2;//not letter	
 	if(strchr(hangman.usedLetters[user_id],ch)!=NULL) return 3;//letter already used
 
-	char* tempUserString = malloc(maxWordLength);//strlen(hangman.userString[user_id])
+	char* tempUserString = malloc(maxWordLength);
 	strcpy(tempUserString,hangman.userString[user_id]);
-	
 	for(int i=0;i<strlen(tempUserString);i++)//reveal letters
 	{
 		if(*(hangman.word[user_id]+i)==tolower(ch))
@@ -240,7 +258,6 @@ int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 			*(hangman.userString[user_id]+i) = tolower(ch);
 		}
 	}
-	
 	if(strstr(hangman.word[user_id],hangman.userString[user_id])!=NULL)//won
 	{
 		send(socket,gameWonHandle,strlen(gameWonHandle),0);
@@ -248,7 +265,6 @@ int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 		SetupUser(user_id);
 		return 0;
 	}
-	
 	else if(strcmp(hangman.userString[user_id],tempUserString)==0)//if letter is not in word
 	{
 		hangman.lives[user_id]--;
@@ -259,24 +275,11 @@ int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 			SetupUser(user_id);
 			return 0;
 		}
-		//send lives left
-		char* livesMsg = malloc(10);
-		char* livesLeft = malloc(5);
-		strcpy(livesMsg,livesHandle);
-		sprintf(livesLeft,"%d",hangman.lives[user_id]);
-		strcat(livesMsg,livesLeft);
-		send(socket,livesMsg,strlen(livesMsg),0);
-
-		free(livesLeft);
-		free(livesMsg);
+		SendLivesLeftMsg(socket,user_id);
 	}
 	else //send user string _________
 	{
-		char* messageToSend = malloc(50);
-		strcpy(messageToSend,userStringHandle);
-		strcat(messageToSend,hangman.userString[user_id]);
-		send(socket,messageToSend,strlen(messageToSend),0);
-		free(messageToSend);
+		SendUserString(socket,user_id);
 	}
 	
 	*(hangman.usedLetters[user_id]+hangman.usedLetterCounter[user_id]) = tolower(ch);
@@ -286,16 +289,16 @@ int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
 	return 0;
 }
 
-void SendStatistics(int socket, char* username)//<---------------------TBC
+void SendStatistics(int socket, char* username)
 {
-	char* messageToSend = malloc(50);
+	char* messageToSend = malloc(maxUsernameLength+15);
 	strcpy(messageToSend,statisticsHandle);
 	
 	FILE *fd;
 	fd=fopen(statisticsPath,"r");
-	char* currentLine = malloc(50);
+	char* currentLine = malloc(maxUsernameLength+15);
 	bool wereStatisticsSent = false;
-	while(fgets(currentLine,50,fd) && !wereStatisticsSent)
+	while(fgets(currentLine,maxUsernameLength+15,fd) && !wereStatisticsSent)
 	{
 		char* usernameFromCurrentLine = currentLine;
 		char* temp = strchr(usernameFromCurrentLine,'|');
@@ -308,6 +311,7 @@ void SendStatistics(int socket, char* username)//<---------------------TBC
 			strcat(messageToSend,"|");
 			strcat(messageToSend,statistics.losses);
 			strcat(messageToSend,"\0");
+			
 			send(socket,messageToSend,strlen(messageToSend),0);
 			wereStatisticsSent = true;
 		}
@@ -318,19 +322,20 @@ void SendStatistics(int socket, char* username)//<---------------------TBC
 		strcat(messageToSend,"-\0");
 		send(socket,messageToSend,strlen(messageToSend),0);
 	}
+	
 	free(currentLine);
 	free(messageToSend);
 	fclose(fd);
 }
-int SendAllStatistics(int socket)
+void SendAllStatistics(int socket)
 {
 	FILE *fd;
 	fd = fopen(statisticsPath,"r");
 	char* allStatistics = malloc(BUFFLEN);
 	strcpy(allStatistics,allStatisticsHandle);
-	char* oneLine = malloc(50);
+	char* oneLine = malloc(maxUsernameLength+15);
 	
-	while(fgets(oneLine,50,fd))
+	while(fgets(oneLine,maxUsernameLength+15,fd))
 	{
 		strcat(allStatistics,oneLine);
 	}
@@ -347,7 +352,6 @@ int SendAllStatistics(int socket)
 	}
 	send(socket,allStatistics,strlen(allStatistics),0);
 	free(allStatistics);
-	return 0;
 }
 
 int main(int argc, char *argv[]){
@@ -433,8 +437,8 @@ int main(int argc, char *argv[]){
 			{
                 clientaddrlen = sizeof(clientaddr);
                 memset(&clientaddr, 0, clientaddrlen);
-                c_sockets[client_id] = accept(l_socket, 
-                    (struct sockaddr*)&clientaddr, &clientaddrlen);
+                c_sockets[client_id] = accept(l_socket, (struct sockaddr*)&clientaddr, &clientaddrlen);
+				
 				SetupUser(client_id);
                 printf("Connected: %s\n",inet_ntoa(clientaddr.sin_addr));
             }
@@ -447,19 +451,22 @@ int main(int argc, char *argv[]){
 				{
                     memset(&buffer,0,BUFFLEN);
                     int r_len = recv(c_sockets[i],&buffer,BUFFLEN,0);
-					//int w_len;
-					printf("User \"%s\" sends:%s\n",hangman.username[i],buffer);
-					
-					if(strstr(buffer,usernameHandle)!=NULL)//if just connected, save username to array
+					printf("User \"%s\" sent:%s\n",hangman.username[i],buffer);
+					if(r_len<=0)
+					{
+						close(c_sockets[i]);
+						c_sockets[i] = -1;
+					}
+					else if(strstr(buffer,usernameHandle)!=NULL)//save username to array
 					{
 						SaveUsername(buffer,i);
 					}
-					else if (strstr(buffer,specificUserStatsHandle)!=NULL)//send spec stats
+					else if (strstr(buffer,specificUserStatsHandle)!=NULL)//send specific user stats
 					{
 						SendStatistics(c_sockets[i],buffer+2);
 					}
 					
-					else if (strstr(buffer,gameMoveHandle)!=NULL)
+					else if (strstr(buffer,gameMoveHandle)!=NULL)//process move
 					{
 						ProcessGameMove(buffer,c_sockets[i],i);
 					}
@@ -471,22 +478,18 @@ int main(int argc, char *argv[]){
 					
 					else if(strstr(buffer,allUserStatHandle)!=NULL)//all stats
 					{
-						int err = SendAllStatistics(c_sockets[i]);
+						SendAllStatistics(c_sockets[i]);
 					}
 					
-					else if (buffer[0]=='/')//menu sequences
+					else if (strstr(buffer,quitHandle)!=NULL)//menu sequences
 					{
-						if(strstr(buffer,quitHandle)!=NULL)
-						{
-							send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
-							close(c_sockets[i]);
-							c_sockets[i] = -1;
-						}
+						send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
+						close(c_sockets[i]);
+						c_sockets[i] = -1;
 					}
                 }
             }
         }
     }
-
     return 0;
 }
