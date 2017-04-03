@@ -368,15 +368,13 @@ int main(int argc, char *argv[]){
     int i;
 
     char buffer[BUFFLEN];
-/*
+
     if (argc != 2){
         fprintf(stderr, "USAGE: %s <port>\n", argv[0]);
         return -1;
-    }*/
+    }
 
-
-    //port = atoi(argv[1]);
-	port = atoi("7896");
+    port = atoi(argv[1]);
 	
     if ((port < 1024) || (port > 65535))
 	{

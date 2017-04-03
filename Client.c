@@ -104,14 +104,13 @@ int main(int argc, char *argv[]){
     char sendbuffer[BUFFLEN];
 
     int i;
-/*
+
     if (argc != 3){
         fprintf(stderr,"USAGE: %s <ip> <port>\n",argv[0]);
         exit(1);
-    }*/
+    }
 
-    //port = atoi(argv[2]);
-	port = atoi("7896");
+    port = atoi(argv[2]);
 	
     if ((port < 1024) || (port > 65535)){
         printf("ERROR #1: invalid port specified.\n");
@@ -128,8 +127,7 @@ int main(int argc, char *argv[]){
     servaddr.sin_port = htons(port); // nurodomas portas
     
 	 
-    //if ( inet_aton(argv[1], &servaddr.sin_addr) <= 0 ) {
-    if ( inet_aton("127.0.0.1", &servaddr.sin_addr) <= 0 ) {
+    if ( inet_aton(argv[1], &servaddr.sin_addr) <= 0 ) {
         fprintf(stderr,"ERROR #3: Invalid remote IP address.\n");
         exit(1);
     }
