@@ -1,3 +1,22 @@
-new user|0|1
-base|1|1
-hello world|7|1
+super user|5|7
+test subject|1|10
+miniature|1|1
+naujas|1|0
+virsila|0|1
+retro|2|1
+ledinukas|0|1
+pokemonas|3|2
+kols|1|0
+ksals|0|2
+klient|1|0
+userwos|1|0
+jonas|0|1
+viskas ok|1|0
+useris|1|0
+naujokas|1|1
+klientas|0|2
+klientcool|1|0
+pokestop|0|1
+kind|0|1
+lokas|1|0
+kodas|0|1

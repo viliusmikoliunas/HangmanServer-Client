@@ -97,7 +97,7 @@ void RequestSpecificUserStatistics(int socket)
 int main(int argc, char *argv[]){
     unsigned int port;
     int s_socket;
-    struct sockaddr_in servaddr; // Serverio adreso struktura
+    struct sockaddr_in servaddr; 
     fd_set read_set;
 
     char recvbuffer[BUFFLEN];
@@ -123,8 +123,8 @@ int main(int argc, char *argv[]){
     }
                                 
     memset(&servaddr,0,sizeof(servaddr));
-    servaddr.sin_family = AF_INET; // nurodomas protokolas (IP)
-    servaddr.sin_port = htons(port); // nurodomas portas
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(port); 
     
 	 
     if ( inet_aton(argv[1], &servaddr.sin_addr) <= 0 ) {
@@ -242,7 +242,7 @@ int main(int argc, char *argv[]){
 					{
 						write(s_socket, statHandle,strlen(statHandle));
 					}
-					else if (sendbuffer[0] == specificUserStatsChar)//cant handle 2 fgets() in the same loop
+					else if (sendbuffer[0] == specificUserStatsChar)
 					{
 						requestedForSpecificStats = true;
 						puts("Enter username:");

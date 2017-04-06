@@ -234,7 +234,7 @@ void SendUserString(int socket, int user_id)
 	send(socket,messageToSend,strlen(messageToSend),0);
 	free(messageToSend);
 }
-int ProcessGameMove(char* buffer, int socket, int user_id)//needs division
+int ProcessGameMove(char* buffer, int socket, int user_id)
 {
 	char* gameMove = malloc(10);
 	if(strstr(buffer,"\n")!=NULL)
@@ -479,7 +479,7 @@ int main(int argc, char *argv[]){
 						SendAllStatistics(c_sockets[i]);
 					}
 					
-					else if (strstr(buffer,quitHandle)!=NULL)//menu sequences
+					else if (strstr(buffer,quitHandle)!=NULL)//quit
 					{
 						send(c_sockets[i],disconnectHandle,strlen(disconnectHandle),0);
 						close(c_sockets[i]);
